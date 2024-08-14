@@ -1,0 +1,10 @@
+CREATE TABLE `correlativos` (
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`tabla` VARCHAR(50) NOT NULL DEFAULT '0',
+	`folio` INT(10) NOT NULL DEFAULT '0',
+	PRIMARY KEY (`id`)
+)
+COLLATE='latin1_swedish_ci'
+ENGINE=InnoDB
+AUTO_INCREMENT=3
+;

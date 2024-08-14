@@ -1,0 +1,13 @@
+CREATE TABLE `fam_articulos` (
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`codigo` CHAR(10) NOT NULL,
+	`nombre` VARCHAR(50) NOT NULL,
+	`Igv` DECIMAL(6,2) UNSIGNED NOT NULL,
+	`Nomovstock` TINYINT(1) UNSIGNED NOT NULL,
+	`Observacion` VARCHAR(200) NOT NULL DEFAULT '',
+	PRIMARY KEY (`id`)
+)
+COLLATE='latin1_swedish_ci'
+ENGINE=InnoDB
+AUTO_INCREMENT=25
+;
