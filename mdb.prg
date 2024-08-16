@@ -1,11 +1,10 @@
-*Sincro_Automatica_Dbf_Sql("depósitos")
+*Sincro_Automatica_Dbf_Sql("rubro")
 
 FUNCTION Sincro_Automatica_Dbf_Sql(cTablaSincro)
 	* Configurar FoxyDB para la conexión a la base de datos MySQL
-	LOCAL oConn, lbEsClave
-
-	oConn = NEWOBJECT("foxydb", "d:\borrar\foxydb\foxydb.prg")
-	IF oConn.CONNECTION("{MySQL ODBC 5.1 Driver}","localhost","root","alexa","alexa","3306")
+	LOCAL ODB, lbEsClave
+	ODB = NEWOBJECT("foxydb", "d:\borrar\foxydb\foxydb.prg")
+	IF ODB.CONNECTION("{MySQL ODBC 5.1 Driver}","localhost","root","alexa","alexa","3306")
 		* conexión fue exitosa
 	ELSE
 		= MESSAGEBOX("NO Conectado",16,"ERROR")
@@ -20,6 +19,8 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaSincro)
 	SCAN
 		cSetMySQL = ""
 		cWhereMySQL = ""
+		lcCampoPer = ""
+		lcValorPer = ""
 		* Obtener detalles del cambio
 		cTablaVFP = RTRIM(UPPER(cursorAuditoria.tabla))
 		cAccion = RTRIM(cursorAuditoria.operacion)
@@ -49,10 +50,14 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaSincro)
 						ELSE
 							cValorMySQL = "'" + cValorMySQL + "'"
 						ENDIF
-					ENDIF
+			 		ENDIF
 					cCamposMySQL = cCamposMySQL + cCampoMySQL + ","
 					cValoresMySQL = cValoresMySQL + TRANSFORM(cValorMySQL) + ","
 				ENDFOR
+				_xui = odb.uuid()
+				ObtenerMapeoPersonalizado(cTablaVFP, @lcCampoPer, @lcValorPer, "I")
+				cCamposMySQL = cCamposMySQL + lcCampoPer
+				cValoresMySQL = cValoresMySQL + lcValorPer
 				* Remover la última coma
 				cCamposMySQL = LEFT(cCamposMySQL, LEN(cCamposMySQL) - 1)
 				cValoresMySQL = LEFT(cValoresMySQL, LEN(cValoresMySQL) - 1)
@@ -60,27 +65,34 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaSincro)
 			CASE cAccion == "UPDATE"
 				* Crear lista de campos y valores mapeados para el SET
 				FOR i = 1 TO ALEN(aCampos,1)
-					cCampoMySQL = ObtenerMapeo(cTablaVFP, aCampos[i, 1], "campo", @lbEsClave)
-					cValorClaveMySQL = aCampos[i, 2]
-					IF EMPTY(cCampoMySQL)
+					cCamposMySQL = ObtenerMapeo(cTablaVFP, aCampos[i, 1], "campo", @lbEsClave)
+					cValoresClaveMySQL = aCampos[i, 2]
+					IF EMPTY(cCamposMySQL)
 						LOOP
 					ENDIF
-					cValorMySQL = aCampos[i, 1]
-					IF VARTYPE(cValorMySQL) == "C"
-						cValorMySQL = "'" + cValorMySQL + "'"
-					ENDIF
-					cSetMySQL = cSetMySQL + cCampoMySQL + " = " + cValorMySQL + ","
+					cValoresMySQL = aCampos[i, 2]
+					IF VARTYPE(cValoresMySQL) <> "N"
+						IF (cValoresMySQL = "TRUE" OR cValoresMySQL = "FALSE")
+							cValoresMySQL =  IIF(cValoresMySQL="TRUE",1,0)
+						ELSE
+							cValoresMySQL = "'" + cValoresMySQL + "'"
+						ENDIF
+			 		ENDIF
+					cSetMySQL = cSetMySQL + cCamposMySQL + " = " + TRANSFORM(cValoresMySQL) + ","
 					IF lbEsClave
-						IF VARTYPE(cValorClaveMySQL) <> "N"
-							IF (cValorClaveMySQL = "TRUE" OR cValorClaveMySQL = "FALSE")
-								cValorClaveMySQL =  IIF(cValorClaveMySQL = "TRUE",1,0)
+						IF VARTYPE(cValoresClaveMySQL) <> "N"
+							IF (cValoresClaveMySQL = "TRUE" OR cValoresClaveMySQL = "FALSE")
+								cValoresClaveMySQL =  IIF(cValoresClaveMySQL = "TRUE",1,0)
 							ELSE
-								cValorClaveMySQL = "'" + cValorClaveMySQL + "'"
+								cValoresClaveMySQL = "'" + cValoresClaveMySQL + "'"
 							ENDIF
 						ENDIF
-						cWhereMySQL = cWhereMySQL + cCampoMySQL + " = " + TRANSFORM(cValorClaveMySQL) + " AND "
+						cWhereMySQL = cWhereMySQL + cCamposMySQL + " = " + TRANSFORM(cValoresClaveMySQL) + " AND "
 					ENDIF
-				ENDFOR
+				ENDFOR				
+				_xui= odb.uuid()
+				ObtenerMapeoPersonalizado(cTablaVFP, @lcCampoPer, @lcValorPer, "U")
+				cSetMySQL = cSetMySQL + lcCampoPer
 				* Remover la última coma
 				cWhereMySQL = LEFT(cWhereMySQL, LEN(cWhereMySQL) - 4)
 				cSetMySQL = LEFT(cSetMySQL, LEN(cSetMySQL) - 1)
@@ -109,32 +121,38 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaSincro)
 		ENDCASE
 		* Ejecutar la sentencia SQL en MySQL
 		**************************
-		curTablaSql = "cur"+cTablaMySQL
+		curTablaSql = cTablaMySQL
 		cEjecutar = "Select * from " + cTablaMySQL + " where " + IIF(EMPTY(cWhereMySQL), " 2 = 1", cWhereMySQL)
-		SET STEP ON
-		oConn.QUERY(cEjecutar, cTablaMySQL,cTablaMySQL)
-		IF oConn.CursorOpen(cTablaMySQL)
-			IF oConn.CursorEdit(cTablaMySQL)
-				*			MESSAGEBOX("Ya esta para ejecutar la consulta enla tabla: "+cTablaMySQL +CHR(13);
-				+"Con la siguiente sentencia"+CHR(13)+cSQL )
+		_CLIPTEXT=cSQL
+		ODB.QUERY(cEjecutar, curTablaSQL,cTablaMySQL)
+		IF ODB.CursorOpen(curTablaSQL)
+			IF ODB.CursorEdit(curTablaSQL)
 				&cSQL
-				oConn.UPDATE(cTablaMySQL)
-				oConn.Commit()
-				UPDATE auditoria SET procesado = .T. WHERE ID = nId
+				IF ODB.CursorChanges(curTablaSQL)
+					IF ODB.UPDATE(curTablaSQL,.t.)
+		 				IF ODB.Commit()
+							UPDATE auditoria SET procesado = .T. WHERE ID = nId
+						ELSE 
+							MESSAGEBOX("Error en el COMMIT de la tabla: "+ curTablaSQL)
+						ENDIF 
+					ELSE 
+						MESSAGEBOX("Error en el UPDATE de la tabla: "+ curTablaSQL)
+					ENDIF 
+				ELSE 
+					MESSAGEBOX("Error en el CURSORCHANGES de la tabla: "+ curTablaSQL)
+				ENDIF 
 			ELSE
-				MESSAGEBOX("No esta Editable la tabla: "+ cTablaMySQL)
+				MESSAGEBOX("No esta Editable la tabla: "+ curTablaSQL)
 			ENDIF
 		ELSE
-			MESSAGEBOX("No esta Abierto el cursor: "+ cTablaMySQL)
+			MESSAGEBOX("No esta Abierto el cursor: "+ curTablaSQL)
 		ENDIF
 	ENDSCAN
 	* Cerrar la conexión a MySQL
-	oConn.Disconnect()
+	ODB.Disconnect()
 	RETURN .T.
 ENDFUNC
 
-*
-*
 FUNCTION ParseJson(tcJSON,aCampos)
 	LOCAL lcKey, lcValue, lcJSON, lnPos, lnColonPos, lnCommaPos
 	LOCAL ARRAY aCampos[1, 2]
@@ -142,18 +160,18 @@ FUNCTION ParseJson(tcJSON,aCampos)
 	lnIndex = 1
 	* Limpiar el JSON (quitar llaves y espacios)
 	lcJSON = STRTRAN(STRTRAN(tcJSON, "{", ""), "}", "")
-	lcJSON = STRTRAN(lcJSON, " ", "")  && Quitar espacios innecesarios
+	*lcJSON = STRTRAN(lcJSON, " ", "")  && Quitar espacios innecesarios
 	DO WHILE !EMPTY(lcJSON)
 		* Encontrar la posición de los delimitadores (dos puntos y coma)
 		lnColonPos = AT(":", lcJSON)
 		lnCommaPos = AT(",", lcJSON)
 		* Extraer clave y valor
-		lcKey = TRIM(SUBSTR(lcJSON, 1, lnColonPos - 1))
+		lcKey = RTRIM(SUBSTR(lcJSON, 1, lnColonPos - 1))
 		IF lnCommaPos > 0
-			lcValue = TRIM(SUBSTR(lcJSON, lnColonPos + 1, lnCommaPos - lnColonPos - 1))
+			lcValue = RTRIM(SUBSTR(lcJSON, lnColonPos + 1, lnCommaPos - lnColonPos - 1))
 			lcJSON = SUBSTR(lcJSON, lnCommaPos + 1)
 		ELSE
-			lcValue = TRIM(SUBSTR(lcJSON, lnColonPos + 1))
+			lcValue = RTRIM(SUBSTR(lcJSON, lnColonPos + 1))
 			lcJSON = ""
 		ENDIF
 
@@ -208,6 +226,82 @@ FUNCTION ObtenerMapeo(tcTablaVFP, tcCampoVFP, tcTipo, lbEsClave)
 		IF NOT EOF()
 			lbEsClave = cursorMap.clave
 		ENDIF
+	ENDIF
+	RETURN lcMappedName
+ENDFUNC
+
+
+FUNCTION ObtenerMapeoPersonalizado(tcTablaVFP, lcCampoPer, lcValorPer, lcOperacion)
+	LOCAL lcMappedName, lcPonerValor, lcPonerFuncion, lcResultadoFuncion
+	lcCampoPer=''
+	lcValorPer=''
+
+	* Buscar el nombre mapeado, si es clave, y otros detalles en la tabla de mapeo
+	SELECT tabla_mysql, campo_mysql, clave, poner_valor, poner_funcion;
+		FROM mapeo ;
+		WHERE ALLTRIM(UPPER(tabla_vfp)) = ALLTRIM(UPPER(tcTablaVFP));
+		AND EMPTY(campo_vfp) ;
+		INTO CURSOR cursorMap
+		
+	* Verificar si hay un registro encontrado
+	SELECT cursorMap
+	IF NOT EOF()
+		SCAN
+			lcMappedName = ""
+			* Verificar si campo_vfp está vacío y campo_mysql tiene valor
+			IF NOT EMPTY(cursorMap.campo_mysql)
+				IF ALLTRIM(UPPER(cursorMap.campo_mysql)) = 'ID' AND lcOperacion = 'U'
+					LOOP
+				ENDIF 
+				* Intentar asignar valor de poner_valor
+				lcPonerValor = cursorMap.poner_valor
+				lcPonerFuncion = cursorMap.poner_funcion
+				* Si poner_valor tiene contenido, usarlo
+				IF NOT EMPTY(lcPonerValor)
+					lcMappedName = lcPonerValor
+				ELSE
+
+					* Si poner_funcion tiene contenido, ejecutarla
+					IF NOT EMPTY(lcPonerFuncion)
+						lcResultadoFuncion = EVAL(lcPonerFuncion)
+						lcMappedName = lcResultadoFuncion
+					ENDIF
+				ENDIF
+				lcTipoDato = VARTYPE(lcMappedName)
+				DO CASE
+					CASE lcTipoDato = "C"  && Carácter
+						IF LEFT(lcMappedName,1) == '='
+							lcMappedName = ALLTRIM(SUBSTR(lcMappedName,2))
+						ELSE 
+							IF lcMappedName == "''" OR lcMappedName == '""'
+								lcMappedName = "''"
+							ELSE 
+								lcMappedName = "'" + ALLTRIM(lcMappedName) + "'"
+							ENDIF 
+						ENDIF 
+					CASE lcTipoDato = "N"  && Numérico
+						lcMappedName = STR(lcMappedName)
+					CASE lcTipoDato = "D"  && Fecha
+						lcMappedName = "'" + RTRIM(DTOC(lcMappedName)) + "'"
+					CASE lcTipoDato = "T"  && DateTime
+						lcMappedName = "'" + RTRIM(TTOC(lcMappedName,3)) + "'"
+					CASE lcTipoDato = "L"  && Lógico
+						lcMappedName = IIF(lcMappedName , 1, 0)
+					CASE lcTipoDato = "M"  && Memo
+						lcMappedName = "'" + MEMLINES(lcMappedName) + "'"
+					OTHERWISE  && Otros tipos de datos
+						lcMappedName = TRANSFORM(lcMappedName)
+				ENDCASE
+				DO CASE 
+					CASE lcOperacion = "I"
+						lcCampoPer = lcCampoPer + RTRIM(cursorMap.campo_mysql) + ','
+						lcValorPer = lcValorPer + ALLTRIM(TRANSFORM(lcMappedName)) + ","
+					CASE lcOperacion = "U"
+						lcCampoPer = lcCampoPer + ;
+						RTRIM(cursorMap.campo_mysql) + ' = ' + ALLTRIM(TRANSFORM(lcMappedName)) + ","
+				ENDCASE 
+			ENDIF
+		ENDSCAN
 	ENDIF
 	RETURN lcMappedName
 ENDFUNC
