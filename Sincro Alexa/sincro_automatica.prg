@@ -1,20 +1,31 @@
-*Sincro_Automatica_Dbf_Sql("rubro")
-
 FUNCTION Sincro_Automatica_Dbf_Sql(cTablaSincro)
 	* Configurar FoxyDB para la conexión a la base de datos MySQL
-	LOCAL ODB, lbEsClave
-	ODB = NEWOBJECT("foxydb", "d:\borrar\foxydb\foxydb.prg")
-	IF ODB.CONNECTION("{MySQL ODBC 5.1 Driver}","localhost","root","alexa","alexa","3306")
-		* conexión fue exitosa
-	ELSE
-		= MESSAGEBOX("NO Conectado",16,"ERROR")
-	ENDIF
+	LOCAL lbEsClave
+	LOCAL odb
+*!*		odb = NEWOBJECT("foxydb", "d:\borrar\foxydb\foxydb.prg")
+*!*		IF odb.CONNECTION("{MySQL ODBC 5.1 Driver}","localhost","root","alexa","alexa","3306")
+*!*			* conexión fue exitosa
+*!*		ELSE
+*!*			= MESSAGEBOX("NO Conectado",16,"ERROR")
+*!*		ENDIF
+	*************************************
+	_oconectar_250516 = .t.
+	TRY 
+		IF oDb.Connected()
+			_oconectar_250516 = .f
+		ENDIF 
+	CATCH TO oex
+	ENDTRY 	
+
+	IF _oconectar_250516 = .t.
+		DO SYS(5) + 'oDbsql/odb_connect'
+	ENDIF 
+	*************************************
 
 	* Consultar la tabla de auditoría para obtener los cambios pendientes
 	SELECT * FROM auditoria ;
 		WHERE RTRIM(UPPER(tabla))=RTRIM(UPPER(cTablaSincro)) AND procesado = .F. ;
 		INTO CURSOR cursorAuditoria
-
 	SELECT cursorAuditoria
 	SCAN
 		cSetMySQL = ""
@@ -160,7 +171,6 @@ FUNCTION ParseJson(tcJSON,aCampos)
 	lnIndex = 1
 	* Limpiar el JSON (quitar llaves y espacios)
 	lcJSON = STRTRAN(STRTRAN(tcJSON, "{", ""), "}", "")
-	*lcJSON = STRTRAN(lcJSON, " ", "")  && Quitar espacios innecesarios
 	DO WHILE !EMPTY(lcJSON)
 		* Encontrar la posición de los delimitadores (dos puntos y coma)
 		lnColonPos = AT(":", lcJSON)
@@ -174,7 +184,6 @@ FUNCTION ParseJson(tcJSON,aCampos)
 			lcValue = RTRIM(SUBSTR(lcJSON, lnColonPos + 1))
 			lcJSON = ""
 		ENDIF
-
 		* Quitar comillas de las claves y valores
 		lcKey = STRTRAN(lcKey, '"', "")
 		lcValue = STRTRAN(lcValue, '"', "")
@@ -216,7 +225,6 @@ FUNCTION ObtenerMapeo(tcTablaVFP, tcCampoVFP, tcTipo, lbEsClave)
 
 	* Inicializar el valor de retorno de es_clave
 	lbEsClave = .F.
-
 	* Devolver el nombre mapeado
 	IF tcTipo == "tabla"
 		lcMappedName = IIF(EOF(), tcTablaVFP, RTRIM(cursorMap.tabla_mysql))
@@ -235,14 +243,13 @@ FUNCTION ObtenerMapeoPersonalizado(tcTablaVFP, lcCampoPer, lcValorPer, lcOperaci
 	LOCAL lcMappedName, lcPonerValor, lcPonerFuncion, lcResultadoFuncion
 	lcCampoPer=''
 	lcValorPer=''
-
 	* Buscar el nombre mapeado, si es clave, y otros detalles en la tabla de mapeo
 	SELECT tabla_mysql, campo_mysql, clave, poner_valor, poner_funcion;
 		FROM mapeo ;
 		WHERE ALLTRIM(UPPER(tabla_vfp)) = ALLTRIM(UPPER(tcTablaVFP));
 		AND EMPTY(campo_vfp) ;
 		INTO CURSOR cursorMap
-		
+		SET STEP ON 
 	* Verificar si hay un registro encontrado
 	SELECT cursorMap
 	IF NOT EOF()
@@ -260,7 +267,6 @@ FUNCTION ObtenerMapeoPersonalizado(tcTablaVFP, lcCampoPer, lcValorPer, lcOperaci
 				IF NOT EMPTY(lcPonerValor)
 					lcMappedName = lcPonerValor
 				ELSE
-
 					* Si poner_funcion tiene contenido, ejecutarla
 					IF NOT EMPTY(lcPonerFuncion)
 						lcResultadoFuncion = EVAL(lcPonerFuncion)

@@ -1,6 +1,6 @@
-*!*	CREATE TRIGGER ON rubro FOR INSERT AS SincroInsert()
-*!*	CREATE TRIGGER ON rubro FOR UPDATE AS SincroUpdate()
-*!*	CREATE TRIGGER ON rubro FOR DELETE AS SincroDelete()
+CREATE TRIGGER ON rubro FOR INSERT AS SincroInsert()
+CREATE TRIGGER ON rubro FOR UPDATE AS SincroUpdate()
+CREATE TRIGGER ON rubro FOR DELETE AS SincroDelete()
 
 CLOSE TABLES all
 USE auditoria EXCLUSIVE 

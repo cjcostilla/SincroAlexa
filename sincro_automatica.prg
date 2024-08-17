@@ -1,18 +1,31 @@
 FUNCTION Sincro_Automatica_Dbf_Sql(cTablaSincro)
 	* Configurar FoxyDB para la conexión a la base de datos MySQL
-	LOCAL ODB, lbEsClave
-	ODB = NEWOBJECT("foxydb", "d:\borrar\foxydb\foxydb.prg")
-	IF ODB.CONNECTION("{MySQL ODBC 5.1 Driver}","localhost","root","alexa","alexa","3306")
-		* conexión fue exitosa
-	ELSE
-		= MESSAGEBOX("NO Conectado",16,"ERROR")
-	ENDIF
+	LOCAL lbEsClave
+	LOCAL odb
+*!*		odb = NEWOBJECT("foxydb", "d:\borrar\foxydb\foxydb.prg")
+*!*		IF odb.CONNECTION("{MySQL ODBC 5.1 Driver}","localhost","root","alexa","alexa","3306")
+*!*			* conexión fue exitosa
+*!*		ELSE
+*!*			= MESSAGEBOX("NO Conectado",16,"ERROR")
+*!*		ENDIF
+	*************************************
+	_oconectar_250516 = .t.
+	TRY 
+		IF oDb.Connected()
+			_oconectar_250516 = .f
+		ENDIF 
+	CATCH TO oex
+	ENDTRY 	
+
+	IF _oconectar_250516 = .t.
+		DO SYS(5) + 'oDbsql/odb_connect'
+	ENDIF 
+	*************************************
 
 	* Consultar la tabla de auditoría para obtener los cambios pendientes
 	SELECT * FROM auditoria ;
 		WHERE RTRIM(UPPER(tabla))=RTRIM(UPPER(cTablaSincro)) AND procesado = .F. ;
 		INTO CURSOR cursorAuditoria
-
 	SELECT cursorAuditoria
 	SCAN
 		cSetMySQL = ""

@@ -1,21 +1,22 @@
 * Definir la ruta del archivo de texto de salida
-lcOutputFile = "Crear_Llenar_Tablas.sql"
+lcOutputFile = "Llenar_Tabla_Mapeo.sql"
 
 * Crear o limpiar el archivo de texto
 STRTOFILE("", lcOutputFile, 0)
 
 * Listar las tablas que necesitas procesar
-LOCAL ARRAY aTablas[10]
-aTablas[1] = "articulo_univoco1"  && abm_articulo_univoco
-aTablas[2] = "depósitos"  && abm_depositos
-aTablas[3] = "empleados_cliente"  && abm_empleados_del_cliente
-aTablas[4] = "clientes"  && abm_clientes
-aTablas[5] = "unidadmedida"  && abm_unidades_de_medida
-aTablas[6] = "rubro"  && abm_rubros
-aTablas[7] = "subrubro"  && abm_subrubros
-aTablas[8] = "unidadmedida"  && abm_unidades_de_medida
-aTablas[9] = "colores"  && abm_colores
-aTablas[10] = "stock1"  && abm_articulos
+LOCAL ARRAY aTablas[1]
+aTablas[1] = "mapeo"  && 
+*!*	aTablas[1] = "articulo_univoco1"  && abm_articulo_univoco
+*!*	aTablas[2] = "depósitos"  && abm_depositos
+*!*	aTablas[3] = "empleados_cliente"  && abm_empleados_del_cliente
+*!*	aTablas[4] = "clientes"  && abm_clientes
+*!*	aTablas[5] = "unidadmedida"  && abm_unidades_de_medida
+*!*	aTablas[6] = "rubro"  && abm_rubros
+*!*	aTablas[7] = "subrubro"  && abm_subrubros
+*!*	aTablas[8] = "unidadmedida"  && abm_unidades_de_medida
+*!*	aTablas[9] = "colores"  && abm_colores
+*!*	aTablas[10] = "stock1"  && abm_articulos
 * Más nombres de tablas si es necesario
 
 * Iterar sobre las tablas
@@ -107,7 +108,7 @@ FOR lnTabla = 1 TO ALEN(aTablas, 1)
 				ENDIF
 			ENDFOR
 
-			lcInsertInto = lcInsertInto + ");" + CHR(13) + CHR(10)
+			lcInsertInto = lcInsertInto + ")" + CHR(13) + CHR(10)
 
 			* Escribir la sentencia INSERT INTO en el archivo de texto
 			STRTOFILE(lcInsertInto, lcOutputFile, 1)

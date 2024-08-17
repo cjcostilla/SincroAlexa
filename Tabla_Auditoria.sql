@@ -1,0 +1,10 @@
+CREATE TABLE Auditoria (
+    ID I(4),
+    TABLA CHAR(50),
+    OPERACION CHAR(10),
+    CAMPOS MEMO,
+    FECHA DATETIME,
+    PROCESADO LOGICAL
+);
+
+

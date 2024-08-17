@@ -1,5 +1,5 @@
 FUNCTION GenerateJSON(tcTabla, tcAccion, taCamposValores)
-	LOCAL lcJSON, lcKey, lcValue, lcPair, i
+	LOCAL lcJSON, lcKey, lcValue, lcPair, i, lcTipoDato
 	* Iniciar la cadena JSON
 	lcJSON = "{"
 	* Recorrer el array de campos y valores
@@ -7,16 +7,28 @@ FUNCTION GenerateJSON(tcTabla, tcAccion, taCamposValores)
 		lcKey = LTRIM(taCamposValores[i, 1])
 		lcValue = taCamposValores[i, 2]
 		* Agregar comillas a los valores de texto
-		IF VARTYPE(lcValue) == "C"
-			lcValue = '"' + LTRIM(lcValue) + '"'
-		ELSE 
-			lcValue = LTRIM(STR(lcValue))
-		ENDIF
+		lcTipoDato = VARTYPE(lcValue)
+		DO CASE
+			CASE lcTipoDato = "C"  && Carácter
+				lcValue = '"' + RTRIM(lcValue) + '"'
+			CASE lcTipoDato = "N"  && Numérico
+				lcValue = RTRIM(STR(lcValue))
+			CASE lcTipoDato = "D"  && Fecha
+				lcValue = '"' + DTOC(lcValue) + '"'
+			CASE lcTipoDato = "T"  && DateTime
+				lcValue = '"' + TTOC(lcValue)+ '"'
+			CASE lcTipoDato = "L"  && Lógico
+				lcValue = IIF(lcValue, "TRUE", "FALSE")
+			CASE lcTipoDato = "M"  && Memo
+				lcValue = '"' + MEMLINES(lcValue) + '"'
+			OTHERWISE  && Otros tipos de datos
+				lcValue = '"' + RTRIM(TRANSFORM(lcValue)) + '"'
+		ENDCASE
 		* Crear el par clave-valor
 		lcPair = '"' + lcKey + '":' + lcValue
 		* Agregar el par a la cadena JSON
 		lcJSON = lcJSON + lcPair
-		* Agregar una coma si no es el �ltimo par
+		* Agregar una coma si no es el último par
 		IF i < ALEN(taCamposValores, 1)
 			lcJSON = lcJSON + ","
 		ENDIF
@@ -39,31 +51,37 @@ FUNCTION ObtenerCamposyValores(laFieldValues)
     RETURN laFieldValues
 ENDFUNC
 
-FUNCTION MiTablaInsert
-	* Definir los campos y valores para una inserci�n
+FUNCTION SincroInsert
+	* Definir los campos y valores para una inserción
 	LOCAL laCamposTabla[1,1]
 	tcTabla = ALIAS()
 	ObtenerCamposyValores(@laCamposTabla)
 	lcJSON = GenerateJSON(tcTabla, "INSERT", @laCamposTabla)
 	INSERT INTO Auditoria (Tabla, operacion, campos) VALUES (tcTabla, "INSERT", lcJSON)
+	=Sincro_Automatica_Dbf_Sql(tcTabla)
+	
 	RETURN .T.
 ENDFUNC
 
-FUNCTION MiTablaUpdate
-	* Definir los campos y valores para una inserci�n
+FUNCTION SincroUpdate
+	* Definir los campos y valores para una inserción
 	LOCAL laCamposTabla[1,1]
 	tcTabla = ALIAS()
 	ObtenerCamposyValores(@laCamposTabla)
 	lcJSON = GenerateJSON(tcTabla, "UPDATE", @laCamposTabla)
 	INSERT INTO Auditoria (Tabla, operacion, campos) VALUES (tcTabla, "UPDATE", lcJSON)
+	=Sincro_Automatica_Dbf_Sql(tcTabla)
+	
 	RETURN .T.
 ENDFUNC
 
-FUNCTION MiTablaDelete
+FUNCTION SincroDelete
 	LOCAL laCamposTabla[1,1]
 	tcTabla = ALIAS()
 	ObtenerCamposyValores(@laCamposTabla)
 	lcJSON = GenerateJSON(tcTabla, "DELETE", @laCamposTabla)
-	INSERT INTO Auditoria (Tabla, operacion, campos) VALUES (tcTabla, "DELETE", lcJSON)
+	INSERT INTO Auditoria (Tabla, operacion, campos) VALUES (tcTabla, "UPDATE", lcJSON)
+	=Sincro_Automatica_Dbf_Sql(tcTabla)
+	
 	RETURN .T.
 ENDFUNC
