@@ -1,12 +1,12 @@
 * Definir la ruta del archivo de texto de salida
-lcOutputFile = "Tabla_Auditoria.sql"
+lcOutputFile = "Tabla_MAPEO.sql"
 
 * Crear o limpiar el archivo de texto
 STRTOFILE("", lcOutputFile, 0)
 
 * Listar las tablas que necesitas procesar
 LOCAL ARRAY aTablas[1]
-aTablas[1] = "Auditoria"  && 
+aTablas[1] = "mapeo"  && 
 *!*	aTablas[1] = "articulo_univoco1"  && abm_articulo_univoco
 *!*	aTablas[2] = "depósitos"  && abm_depositos
 *!*	aTablas[3] = "empleados_cliente"  && abm_empleados_del_cliente

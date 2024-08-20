@@ -13,7 +13,9 @@ _xui=""
 SET DATE TO AMERICAN
 SET CENTURY ON
 SET MARK TO "/"
-SET PROCEDURE TO mdb.prg, sincro_funciones.prg 
+SET PROCEDURE TO sincro_automatica.prg 
+INSERT INTO rubro (RUBRO, FTP, IDDT, VERSION, IDGENERAL);
+ VALUES ('TEÑIDO', CTOD('07/30/13'), CTOT('07/30/13 02:59:55 PM'), 0, 0)
 
 *!*	INSERT INTO rubro VALUES ('LAVADO', CTOD('07/30/13'), CTOT('07/30/13 02:59:55 PM'), 11, 11, 0, 0)
 *!*	INSERT INTO rubro VALUES ('BONIFICACIÓN', CTOD('07/30/13'), CTOT('07/30/13 03:11:01 PM'), 13, 13, 0, 0)
@@ -23,14 +25,16 @@ SET PROCEDURE TO mdb.prg, sincro_funciones.prg
 *!*	INSERT INTO rubro VALUES ('SANIDAD', CTOD('05/13/15'), CTOT('05/13/15 10:34:18 AM'), 43, 43, 0, 1)
 *!*	INSERT INTO rubro VALUES ('GASTRONOMIA', CTOD('05/13/15'), CTOT('05/13/15 10:34:18 AM'), 44, 44, 0, 1)
 *!*	INSERT INTO rubro VALUES ('UNIFORMES', CTOD('05-13-15'), CTOT('05-13-15 10:34:18 AM'), 45, 45, 0, 1)
-
-UPDATE rubro SET RUBRO = 'LAVADO Y SECADO',IDS = 11 WHERE IDS = 11 
+SET PROCEDURE TO sincro_automatica.prg 
+UPDATE rubro SET RUBRO = 'ALISADO SIMPLE' WHERE IDS = 13	
 
 *!*	CLOSE TABLES all
 *!*	USE rubro EXCLUSIVE 
 *!*	ZAP
 *!*	PACK
 *!*	reindex
+SET PROCEDURE TO sincro_automatica.prg 
+DELETE FROM rubro WHERE IDS = 11
 
 *!*	MESSAGEBOX(CTOD('05/13/15'))
 
@@ -38,5 +42,6 @@ UPDATE rubro SET RUBRO = 'LAVADO Y SECADO',IDS = 11 WHERE IDS = 11
 *!*	  SET DATE TO DMY
 
 
-
-
+SELECT COUNT(*) as ultimo FROM rubro INTO CURSOR curCodigoAuto
+nUltimo=curCodigoAuto.ultimo + 1
+MESSAGEBOX(nUltimo)

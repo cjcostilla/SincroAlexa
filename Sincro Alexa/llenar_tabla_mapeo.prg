@@ -1,4 +1,12 @@
-
+CREATE TABLE mapeo (;
+    TABLA_VFP CHAR(100),;
+    CAMPO_VFP CHAR(100),;
+    TABLA_MYSQL CHAR(100),;
+    CAMPO_MYSQL CHAR(100),;
+    CLAVE LOGICAL,;
+    PONER_VALOR CHAR(150),;
+    PONER_FUNCION CHAR(150);
+)
 
 INSERT INTO mapeo VALUES ('depósitos', 'num', 'abm_depositos', 'sincronizacion', .T., '', '')
 INSERT INTO mapeo VALUES ('depósitos', 'nombre', 'abm_depositos', 'nombre', .F., '', '')

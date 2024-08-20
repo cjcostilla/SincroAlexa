@@ -164,6 +164,7 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaSincro)
 	USE IN cursorAuditoria
 	USE IN auditoria 
 	USE IN &curTablaSql
+	USE IN &cTablaVFP
 	USE IN dbcursor
 	odb.Disconnect()
 	RETURN .T.
