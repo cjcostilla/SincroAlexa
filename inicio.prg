@@ -3,6 +3,8 @@
 SET TALK OFF
 SET NOTIFY OFF
 SET CURSOR OFF
+SET EXCLUSIVE OFF 
+SET DELETED ON 
 
 SET PROCEDURE TO sincro_automatica.prg, foxydb.prg ADDITIVE
 
@@ -15,7 +17,7 @@ lcExit = .F.  && Bandera para controlar la salida de los bucles
 DO WHILE .T.
 	* Si la bandera indica que se debe salir, romper el bucle externo
 	IF lcExit
-		STRTOFILE("ME FUI ", "error_log.txt", .T.)
+		STRTOFILE(DTOC(DATE()) + " " + TIME() + ">>> ME FUI ", "error_log.txt"+CHR(13), .T.)
 		EXIT
 	ENDIF
 	TRY
@@ -38,6 +40,8 @@ DO WHILE .T.
 				SELECT csrEmpresas
 			ENDSCAN
 			* Pausa antes de la siguiente verificación
+*			lcExit = .T.
+*			EXIT
 			INKEY(5) && Espera 10 segundos
 		ENDDO
 	CATCH TO loError

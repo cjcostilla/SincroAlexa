@@ -1,2 +1,0 @@
-STRTOFILE(DTOC(DATE()) + " " + TIME() + " - Backup de Auditoria Realizado como: " + lcTablaBkp + CHR(13) +  , "error_log.txt", .T.)
-Error in line 234: Missing operand.

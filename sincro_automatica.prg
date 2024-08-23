@@ -1,6 +1,7 @@
 FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 	* Configurar FoxyDB para la conexión a la base de datos MySQL
 	LOCAL lbEsClave
+	PUBLIC _sincroIdClave, cJson
 	odb = NEWOBJECT("foxydb", "foxydb.prg")
 	IF odb.CONNECTION("{MySQL ODBC 5.1 Driver}","localhost","root","alexa","alexa","3306")
 		* conexión fue exitosa
@@ -22,7 +23,7 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 	*************************************
 	* Consultar la tabla de auditoría para obtener los cambios pendientes
 	cTablaAuditoria = cTablaDir+"auditoria"
-	
+
 	SELECT * FROM &cTablaAuditoria WHERE procesado = .F. INTO CURSOR cursorAuditoria
 
 	SELECT cursorAuditoria
@@ -35,6 +36,7 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 		cTablaVFP = RTRIM(UPPER(cursorAuditoria.tabla))
 		cAccion = RTRIM(cursorAuditoria.operacion)
 		cCampos = cursorAuditoria.campos
+		cJason = cCampos
 		nId = cursorAuditoria.ID
 		* Convertir cCampos a un formato utilizable (JSON)
 		LOCAL ARRAY aCampos[1,1]
@@ -129,7 +131,7 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 					cWhereMySQL = cWhereMySQL + cCampoMySQL + " = " + TRANSFORM(cValorMySQL) + " AND "
 				ENDFOR
 				cWhereMySQL = LEFT(cWhereMySQL, LEN(cWhereMySQL) - 4)
-				cSQL = "DELETE FROM " + cTablaMySQL + " WHERE " + cWhereMySQL
+				cSQL = "UPDATE " + cTablaMySQL + " SET eliminado = 1 WHERE " + cWhereMySQL
 		ENDCASE
 		* Ejecutar la sentencia SQL en MySQL
 		**************************
@@ -143,7 +145,6 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 				IF odb.CursorChanges(curTablaSql)
 					IF odb.UPDATE(curTablaSql,.T.)
 						IF odb.Commit()
-							=GenerarBackup()
 							UPDATE auditoria SET procesado = .T. WHERE ID = nId
 						ELSE
 							MESSAGEBOX("Error en el COMMIT de la tabla: "+ curTablaSql)
@@ -168,12 +169,39 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 	USE IN auditoria
 	*USE IN &curTablaSql
 	*USE IN dbcursor
+	GenerarBackup()
 	odb.Disconnect()
 	RETURN .T.
 ENDFUNC
 
-FUNCTION ObtenerClaveTabla(cTablaVfp, cJason)
-	cTabla=ALLTRIM(UPPER(cTablaVfp))
+
+FUNCTION ObtenerValorClave(cTablaVFP, cJason, cClave)
+	cTabla=ALLTRIM(UPPER(cTablaVFP))
+	lcJson = ALLTRIM(cJason)
+	* Definir la clave que deseas buscar
+	lcClave = '"'+ALLTRIM(UPPER(cClave))+'":'
+	* Buscar la posición de la clave en la cadena JSON
+	lnPosClave = AT(lcClave, lcJson)
+	lcValor = ''
+	IF lnPosClave > 0
+		* Extraer la parte de la cadena que contiene el valor de la clave
+		lcSubcadena = SUBSTR(lcJson, lnPosClave + LEN(lcClave) - 1)
+		* Extraer el valor entre el separador ":" y la coma siguiente
+		lcValor = STREXTRACT(lcSubcadena, ":", ",", 1)
+		* Si es el último elemento y no hay coma, buscamos hasta el cierre de llave
+		IF EMPTY(lcValor)
+			lcValor = STREXTRACT(lcSubcadena, ":", "}", 1)
+		ENDIF
+		* Eliminar posibles espacios en blanco o comillas
+		lcValor = ALLTRIM(STRTRAN(lcValor, '"', ''))
+		lcClave = ALLTRIM(STRTRAN(STRTRAN(lcClave, '"', ''), ':', ''))
+	ENDIF
+	RETURN lcValor
+ENDFUNC
+
+
+FUNCTION ObtenerClaveTabla(cTablaVFP, cJason)
+	cTabla=ALLTRIM(UPPER(cTablaVFP))
 	lcJson = ALLTRIM(cJason)
 	SELECT * FROM mapeo ;
 		WHERE ALLTRIM(UPPER(tabla_vfp)) == cTabla;
@@ -209,70 +237,72 @@ FUNCTION GenerarBackup
 		FROM auditoria INTO CURSOR curFechaBackup
 	lnFechaUltimoBackup = curFechaBackup.fecha
 	IF DATE() > lnFechaUltimoBackup AND !ISNULL(lnFechaUltimoBackup)
+
 		* Definir la ruta y nombre de la carpeta y archivo de backup
 		lc_RutaBackup = ALLTRIM(UPPER(EMPRESAS.DIRECTORIO)) + "AUDITORIAS\"
 		lc_NombreArchivoBackup = "Auditoria" + ALLTRIM(STR(YEAR(lnFechaUltimoBackup)));
 			+ ALLTRIM(STR(MONTH(lnFechaUltimoBackup)));
 			+ ALLTRIM(STR(DAY(lnFechaUltimoBackup)));
-			+ ALLTRIM(SUBSTR(EMPRESAS.NOMBRE,1,20)) + ".dbf"
+			+ ALLTRIM(SUBSTR(EMPRESAS.NOMBRE,1,20))
+
 		* Crear la carpeta de backup si no existe
 		IF !DIRECTORY(lc_RutaBackup)
 			MKDIR(lc_RutaBackup)
 		ENDIF
+		* Chequear si la tabla ya existe le pone prefijo
+		lc_NombreArchivoBackup = NombreTabla(lc_RutaBackup, lc_NombreArchivoBackup)
 		* Copiar la tabla de auditoría a la carpeta de backup
 		lcTablaBkp = lc_RutaBackup+lc_NombreArchivoBackup
 		SELECT * FROM auditoria WHERE TTOD(fecha) < DATE() INTO TABLE (EVALUATE('lcTablaBkp'))
+
 		* Vaciar la tabla original de auditoría
-		IF FLOCK("auditoria")
-			USE IN auditoria
-			USE auditoria EXCLUSIVE
-			DELETE FROM auditoria WHERE fecha < DATE() AND procesado = .T.
-			PACK
-			USE auditoria SHARED
-		ENDIF
-		STRTOFILE(DTOC(DATE()) + " " + TIME() + " - Backup de Auditoria Realizado como: " + lcTablaBkp + CHR(13) + ;
-			, "error_log.txt", .T.)
+		DELETE FROM auditoria WHERE fecha < DATE() AND procesado = .T.
+		STRTOFILE(DTOC(DATE()) + " " + TIME() + " - Backup de Auditoria Realizado como: " + lc_NombreArchivoBackup+ ".dbf" + CHR(13);
+			+ SPACE(18) + " - En el Directorio: " + lc_RutaBackup + CHR(13), "error_log.txt", .T.)
+		USE IN &lc_NombreArchivoBackup
 	ENDIF
 	USE IN curFechaBackup
 	RETURN .T.
 ENDFUNC
 
-FUNCTION CodigoAutomatico(cTablaVFP)
-	LOCAL cCodigo, nUltimoCodigo
-	LOCAL cSeteoActual
-	* Guardar el valor actual de SET DELETE
-	cSeteoActual = SET("DELETE")
-	* Cambiar el valor de SET DELETE
-	SET DELETE OFF
-	* Busca el último código registrado en la tabla
-	SELECT COUNT(*) AS UltimoCodigo;
-		FROM &cTablaVFP INTO CURSOR curCodigoAuto
-	* Si no hay registros, comienza desde 1
-	IF ISNULL(curCodigoAuto.UltimoCodigo)
-		cCodigo = "0001"
-	ELSE
-		* Incrementa el último código en 1
-		nUltimoCodigo = curCodigoAuto.UltimoCodigo + 1
-		* Formatea el código a 4 dígitos con ceros a la izquierda
-		cCodigo = PADL(ALLTRIM(STR(nUltimoCodigo)), 4, "0")
+FUNCTION NombreTabla(cDirectorio, cTabla)
+	SET STEP ON
+	LOCAL lcTabla, lnExiste
+	lnExiste = FILE(cDirectorio+cTabla + ".dbf")
+	
+	IF lnExiste
+		&& la tabla ya existe, agregar sufijo numérico
+		LOCAL lnSufijo
+		lnSufijo = 1
+		DO WHILE FILE(cDirectorio+cTabla + "_" + ALLTRIM(STR(lnSufijo)) + ".dbf")
+			lnSufijo = lnSufijo + 1
+		ENDDO
+		cTabla = cTabla + "_" + ALLTRIM(STR(lnSufijo))
 	ENDIF
-	* Restaurar el valor anterior de SET DELETE
-	SET DELETE &cSeteoActual
-*	USE IN curCodigoAuto
-	RETURN cCodigo
+	RETURN cTabla
+ENDFUNC
+
+FUNCTION CodigoAutomatico(cTablaVFP)
+	LOCAL lcProximo, lcCursorSQL
+	lcProximo = ''
+	lcCursorSQL = 'curSql'+ALLTRIM(UPPER(cTablaVFP))
+	odb.CONNECT()
+	odb.QUERY("SELECT LPAD(IFNULL(MAX(codigo) + 1, 1), 4, '0') AS proximo FROM " + cTablaVFP +;
+		" WHERE id_ABM_empresas = " + ALLTRIM(STR(_sincroaempresa)) ,lcCursorSQL ,cTablaVFP)
+	IF odb.CursorOpen(lcCursorSQL )
+		SELECT &lcCursorSQL
+		lcProximo = proximo && Codigo Generado
+	ENDIF
+	RELEASE &lcCursorSQL
+	RETURN lcProximo
 ENDFUNC
 
 FUNCTION ObtenerEmpresa()
 	PUBLIC _sincroaempresa, _sincroaregion, _sincroausuario, _sincroarutadato, _sincroaui
 	SELECT csrEmpresas
 	_sincroaempresa = csrEmpresas.IDS
-	*_xempresa = _sincroaempresa
 	_sincroausuario = 999
-	*_xusuario = _sincroausuario
-	*_xexportado = .T.
 	_sincroaui=''
-	*_xrutadato = ALLTRIM(UPPER(EMPRESAS.DIRECTORIO))
-	*_xrutalog = UPPER('c:\aplicaciones\programas\nuevossistemas\')
 	DO CASE
 		CASE ALLTRIM(csrEmpresas.NUM3) = "ARGENTINA"
 			_sincroaregion = 1
@@ -418,6 +448,7 @@ FUNCTION ParseJson(tcJSON,aCampos)
 		* Encontrar la posición de los delimitadores (dos puntos y coma)
 		lnColonPos = AT(":", lcJson)
 		lnCommaPos = AT(",", lcJson)
+
 		* Extraer clave y valor
 		lcKey = RTRIM(SUBSTR(lcJson, 1, lnColonPos - 1))
 		IF lnCommaPos > 0
@@ -427,9 +458,11 @@ FUNCTION ParseJson(tcJSON,aCampos)
 			lcValue = RTRIM(SUBSTR(lcJson, lnColonPos + 1))
 			lcJson = ""
 		ENDIF
+
 		* Quitar comillas de las claves y valores
 		lcKey = STRTRAN(lcKey, '"', "")
 		lcValue = STRTRAN(lcValue, '"', "")
+
 		* Almacenar en el array
 		lcTipoDato = TYPE(lcValue)
 		DO CASE
@@ -460,6 +493,7 @@ ENDFUNC
 
 FUNCTION ObtenerMapeo(tcTablaVFP, tcCampoVFP, tcTipo, lbEsClave)
 	LOCAL lcMappedName
+
 	* Buscar el nombre mapeado en la tabla de mapeo
 	SELECT tabla_mysql, campo_mysql, clave;
 		FROM mapeo ;
@@ -468,11 +502,13 @@ FUNCTION ObtenerMapeo(tcTablaVFP, tcCampoVFP, tcTipo, lbEsClave)
 
 	* Inicializar el valor de retorno de es_clave
 	lbEsClave = .F.
+
 	* Devolver el nombre mapeado
 	IF tcTipo == "tabla"
 		lcMappedName = IIF(EOF(), tcTablaVFP, RTRIM(cursorMap.tabla_mysql))
 	ELSE
 		lcMappedName = IIF(EOF(), "", RTRIM(cursorMap.campo_mysql)) &&tcCampoVFP
+
 		* Verificar si es clave
 		IF NOT EOF()
 			lbEsClave = cursorMap.clave
@@ -488,6 +524,7 @@ FUNCTION ObtenerMapeoPersonalizado(tcTablaVFP, lcCampoPer, lcValorPer, lcOperaci
 	LOCAL lcMappedName, lcPonerValor, lcPonerFuncion, lcResultadoFuncion
 	lcCampoPer=''
 	lcValorPer=''
+
 	* Buscar el nombre mapeado, si es clave, y otros detalles en la tabla de mapeo
 	SELECT tabla_mysql, campo_mysql, clave, poner_valor, poner_funcion;
 		FROM mapeo ;
@@ -501,6 +538,7 @@ FUNCTION ObtenerMapeoPersonalizado(tcTablaVFP, lcCampoPer, lcValorPer, lcOperaci
 	IF NOT EOF()
 		SCAN
 			lcMappedName = ""
+
 			* Verificar si campo_vfp está vacío y campo_mysql tiene valor
 			IF NOT EMPTY(cursorMap.campo_mysql)
 				DO CASE
@@ -509,13 +547,16 @@ FUNCTION ObtenerMapeoPersonalizado(tcTablaVFP, lcCampoPer, lcValorPer, lcOperaci
 					CASE ATC('CODIGOAUTOMATICO',ALLTRIM(UPPER(cursorMap.poner_funcion))) > 0 AND lcOperacion = 'U'
 						LOOP
 				ENDCASE
+
 				* Intentar asignar valor de poner_valor
 				lcPonerValor = cursorMap.poner_valor
 				lcPonerFuncion = cursorMap.poner_funcion
+
 				* Si poner_valor tiene contenido, usarlo
 				IF NOT EMPTY(lcPonerValor)
 					lcMappedName = lcPonerValor
 				ELSE
+
 					* Si poner_funcion tiene contenido, ejecutarla
 					IF NOT EMPTY(lcPonerFuncion)
 						lcResultadoFuncion = EVAL(lcPonerFuncion)
@@ -572,7 +613,7 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 
 	SET TABLEPROMPT OFF
 	SET CPDIALOG OFF
-	SET DELETED OFF
+	SET DELETED ON
 	SET TALK OFF
 	SET CONSOLE OFF
 	SET SAFETY OFF
@@ -918,7 +959,7 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 				*&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 				SELECT &_ocursorSQL_funcion
 			OTHERWISE
-				*odb_connect()
+				odb.CONNECT()
 				odb.QUERY("select * from " + _otablaSQL_funcion + " WHERE TRIM(UPPER(nombre)) = ?TRIM(UPPER(_onombre)) AND  id_ABM_empresas = " + ALLTRIM(STR(_sincroaempresa)), _ocursorSQL_funcion, _otablaSQL_funcion)
 				*&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 				*WAIT WINDOW "odb_funcion_id - SELECT - 11" nowait noclear
