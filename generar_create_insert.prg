@@ -1,11 +1,11 @@
 * Definir la ruta del archivo de texto de salida
-lcOutputFile = "Tabla_MAPEO.sql"
+lcOutputFile = "Tabla_.sql"
 
 * Crear o limpiar el archivo de texto
 STRTOFILE("", lcOutputFile, 0)
 
 * Listar las tablas que necesitas procesar
-LOCAL ARRAY aTablas[1]
+LOCAL ARRAY aTablas[2]
 aTablas[1] = "mapeo"  && 
 *!*	aTablas[1] = "articulo_univoco1"  && abm_articulo_univoco
 *!*	aTablas[2] = "depósitos"  && abm_depositos
@@ -16,7 +16,7 @@ aTablas[1] = "mapeo"  &&
 *!*	aTablas[7] = "subrubro"  && abm_subrubros
 *!*	aTablas[8] = "unidadmedida"  && abm_unidades_de_medida
 *!*	aTablas[9] = "colores"  && abm_colores
-*!*	aTablas[10] = "stock1"  && abm_articulos
+	aTablas[2] = "stock1"  && abm_articulos
 * Más nombres de tablas si es necesario
 
 * Iterar sobre las tablas
@@ -79,7 +79,7 @@ FOR lnTabla = 1 TO ALEN(aTablas, 1)
 
 		* Obtener los registros y crear sentencias INSERT INTO
 		SELECT (lcTabla)
-		SCAN
+		SCAN RECNO() < 11
 			lcInsertInto = "INSERT INTO " + lcTabla + " VALUES ("
 
 			FOR lnCampo = 1 TO ALEN(aEstructura, 1)

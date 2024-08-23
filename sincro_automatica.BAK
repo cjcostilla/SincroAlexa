@@ -518,6 +518,7 @@ FUNCTION ObtenerMapeoPersonalizado(tcTablaVFP, lcCampoPer, lcValorPer, lcOperaci
 				ELSE
 					* Si poner_funcion tiene contenido, ejecutarla
 					IF NOT EMPTY(lcPonerFuncion)
+						SET STEP ON 
 						lcResultadoFuncion = EVAL(lcPonerFuncion)
 						lcMappedName = lcResultadoFuncion
 					ENDIF
