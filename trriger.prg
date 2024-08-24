@@ -39,9 +39,9 @@ INSERT INTO rubro (RUBRO, FTP, IDDT, VERSION, IDGENERAL);
 INSERT INTO rubro (RUBRO, FTP, IDDT, VERSION, IDGENERAL);
  VALUES ('UNIFORMES', CTOD('07/30/13'), CTOT('07/30/13 02:59:55 PM'), 0, 0)
 
-UPDATE rubro SET RUBRO = 'LAVADO' WHERE IDS = 5
+UPDATE rubro SET RUBRO = 'LAVADO Y SECADO' WHERE IDS = 10
 
-DELETE FROM rubro WHERE IDS = 5
+DELETE FROM rubro WHERE IDS = 10
 
 *****************************
 *INSERT INTO stock1 VALUES ('', '', 'VARIOS', 'VARIOS', 0, '000', '000', 'CHIP SIN ASIGNAR', '', '', '', '', 0, 0, 0, '', '', '', '', '', '', '', '', DATE(), DATETIME(), 1, 1, 0, 1, 0, 0, '', 0, 0, 0, 0)
