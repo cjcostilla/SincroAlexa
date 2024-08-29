@@ -173,10 +173,11 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 		**************************
 		curTablaSQL = cTablaMySQL
 		cEjecutar = "Select * from " + cTablaMySQL + " where " + IIF(EMPTY(cWhereMySQL), " 2 = 1", cWhereMySQL)
-		_CLIPTEXT=cSQL
 		odb.QUERY(cEjecutar, curTablaSQL,cTablaMySQL)
 		IF odb.CursorOpen(curTablaSQL)
 			IF odb.CursorEdit(curTablaSQL)
+				_CLIPTEXT=cSQL
+				SET STEP ON 
 				&cSQL
 				IF odb.CursorChanges(curTablaSQL)
 					IF odb.UPDATE(curTablaSQL,.T.)
@@ -210,7 +211,6 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 	RETURN .T.
 ENDFUNC
 
-
 FUNCTION ObtenerValorClave(cTablaVFP, cJason, cClave)
 	cTabla=ALLTRIM(UPPER(cTablaVFP))
 	lcJson = ALLTRIM(cJason)
@@ -229,7 +229,14 @@ FUNCTION ObtenerValorClave(cTablaVFP, cJason, cClave)
 			lcValor = STREXTRACT(lcSubcadena, ":", "}", 1)
 		ENDIF
 		* Eliminar posibles espacios en blanco o comillas
+
 		lcValor = ALLTRIM(STRTRAN(lcValor, '"', ''))
+		IF lcValor=="FALSE"
+			lcValor='0'
+		ENDIF 
+		IF lcValor=="TRUE"
+			lcValor='1'
+		ENDIF 
 		lcClave = ALLTRIM(STRTRAN(STRTRAN(lcClave, '"', ''), ':', ''))
 	ENDIF
 	RETURN lcValor
@@ -302,10 +309,8 @@ FUNCTION GenerarBackup
 ENDFUNC
 
 FUNCTION NombreTabla(cDirectorio, cTabla)
-	SET STEP ON
 	LOCAL lcTabla, lnExiste
 	lnExiste = FILE(cDirectorio+cTabla + ".dbf")
-
 	IF lnExiste
 		&& la tabla ya existe, agregar sufijo numérico
 		LOCAL lnSufijo
@@ -334,132 +339,136 @@ FUNCTION CodigoAutomatico(cTablaVFP)
 ENDFUNC
 
 FUNCTION ObtenerEmpresa()
-	PUBLIC _sincroaempresa, _sincroaregion, _sincroausuario, _sincroarutadato, _sincroaui
+	PUBLIC _sincroaempresa, _sincroaregion, _sincroausuario, _sincroarutadato
+	PUBLIC _sincroaui, _sincromoneda, _sincrocadenamoneda 
 	SELECT csrEmpresas
 	_sincroaempresa = csrEmpresas.IDS
+	_sincroarutadato = ALLTRIM(csrEmpresas.Directorio)
 	_sincroausuario = 999
-	_sincroaui=''
+	_sincroaui = ''
+	_sincromoneda = 0
+	_sincrocadenamoneda = ''
 	DO CASE
 		CASE ALLTRIM(csrEmpresas.NUM3) = "ARGENTINA"
 			_sincroaregion = 1
-			_xmoneda = 1
-			Xcadenamoneda = 'PESO'
+			_sincromoneda = 1
+			_sincrocadenamoneda = 'PESO'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "MÉXICO"
 			_sincroaregion = 2
-			_xmoneda = 10
-			Xcadenamoneda = 'PESO MEXICANO'
+			_sincromoneda = 10
+			_sincrocadenamoneda = 'PESO MEXICANO'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "COLOMBIA"
 			_sincroaregion = 3
-			_xmoneda = 12
-			Xcadenamoneda = 'PESO COLOMBIANO'
+			_sincromoneda = 12
+			_sincrocadenamoneda = 'PESO COLOMBIANO'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "VENEZUELA"
 			_sincroaregion = 4
-			_xmoneda = 4
-			Xcadenamoneda = 'BOLIVAR'
+			_sincromoneda = 4
+			_sincrocadenamoneda = 'BOLIVAR'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "E.E.U.U."
 			_sincroaregion = 5
-			_xmoneda = 2
-			Xcadenamoneda = 'DOLAR'
+			_sincromoneda = 2
+			_sincrocadenamoneda = 'DOLAR'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "CHILE"
 			_sincroaregion = 6
-			_xmoneda = 11
-			Xcadenamoneda = 'PESO'
+			_sincromoneda = 11
+			_sincrocadenamoneda = 'PESO'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "BRASIL"
 			_sincroaregion = 7
-			_xmoneda = 3
-			Xcadenamoneda = 'REAL'
+			_sincromoneda = 3
+			_sincrocadenamoneda = 'REAL'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "COSTA RICA"
 			_sincroaregion = 8
-			_xmoneda = 5
-			Xcadenamoneda = 'COLON'
+			_sincromoneda = 5
+			_sincrocadenamoneda = 'COLON'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "PARAGUAY"
 			_sincroaregion = 9
-			_xmoneda = 6
-			Xcadenamoneda = 'GUARANI'
+			_sincromoneda = 6
+			_sincrocadenamoneda = 'GUARANI'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "PERU"
 			_sincroaregion = 10
-			_xmoneda = 7
-			Xcadenamoneda = 'SOL'
+			_sincromoneda = 7
+			_sincrocadenamoneda = 'SOL'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "PANAMÁ"
 			_sincroaregion = 11
-			_xmoneda = 8
-			Xcadenamoneda = 'BALBOA'
+			_sincromoneda = 8
+			_sincrocadenamoneda = 'BALBOA'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "URUGUAY"
 			_sincroaregion = 12
-			_xmoneda = 9
-			Xcadenamoneda = 'PESO'
+			_sincromoneda = 9
+			_sincrocadenamoneda = 'PESO'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "BOLIVIA"
 			_sincroaregion = 13
-			_xmoneda = 13
-			Xcadenamoneda = 'BOLIVIANO'
+			_sincromoneda = 13
+			_sincrocadenamoneda = 'BOLIVIANO'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "PUERTO RICO"
 			_sincroaregion = 14
-			_xmoneda = 2
-			Xcadenamoneda = 'DOLAR'
+			_sincromoneda = 2
+			_sincrocadenamoneda = 'DOLAR'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "HONDURAS"
 			_sincroaregion = 15
-			_xmoneda = 14
-			Xcadenamoneda = 'LEMPIRA'
+			_sincromoneda = 14
+			_sincrocadenamoneda = 'LEMPIRA'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "NICARAGUA"
 			_sincroaregion = 16
-			_xmoneda = 15
-			Xcadenamoneda = 'CORDOBA'
+			_sincromoneda = 15
+			_sincrocadenamoneda = 'CORDOBA'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "ECUADOR"
 			_sincroaregion = 17
-			_xmoneda = 2
-			Xcadenamoneda = 'DOLAR'
+			_sincromoneda = 2
+			_sincrocadenamoneda = 'DOLAR'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "GUATEMALA"
 			_sincroaregion = 18
-			_xmoneda = 16
-			Xcadenamoneda = 'QUETZAL'
+			_sincromoneda = 16
+			_sincrocadenamoneda = 'QUETZAL'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "ESPAÑA"
 			_sincroaregion = 19
-			_xmoneda = 17
-			Xcadenamoneda = 'EURO'
+			_sincromoneda = 17
+			_sincrocadenamoneda = 'EURO'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "REPUBLICA DOMINICANA"
 			_sincroaregion = 20
-			_xmoneda = 18
-			Xcadenamoneda = 'PESO DOMINICANO'
+			_sincromoneda = 18
+			_sincrocadenamoneda = 'PESO DOMINICANO'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "BAHAMAS"
 			_sincroaregion = 21
-			_xmoneda = 19
-			Xcadenamoneda = 'DOLAR BAHAMEÑO'
+			_sincromoneda = 19
+			_sincrocadenamoneda = 'DOLAR BAHAMEÑO'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "EL SALVADOR"
 			_sincroaregion = 22
-			_xmoneda = 2
-			Xcadenamoneda = 'DOLAR'
+			_sincromoneda = 2
+			_sincrocadenamoneda = 'DOLAR'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "JAMAICA"
 			_sincroaregion = 23
-			_xmoneda = 20
-			Xcadenamoneda = 'DOLAR JAMAIQUINO'
+			_sincromoneda = 20
+			_sincrocadenamoneda = 'DOLAR JAMAIQUINO'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "CANADA"
 			_sincroaregion = 24
-			_xmoneda = 21
-			Xcadenamoneda = 'DOLAR CANADIENSE'
+			_sincromoneda = 21
+			_sincrocadenamoneda = 'DOLAR CANADIENSE'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "TRINIDAD Y TOBAGO"
 			_sincroaregion = 25
-			_xmoneda = 22
-			Xcadenamoneda = 'DOLAR TRINITENSE'
+			_sincromoneda = 22
+			_sincrocadenamoneda = 'DOLAR TRINITENSE'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "BELICE"
 			_sincroaregion = 26
 			_xmoneda = 23
-			Xcadenamoneda = 'DOLAR BELICEÑO'
+			_sincrocadenamoneda = 'DOLAR BELICEÑO'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "GUYANA"
 			_sincroaregion = 27
-			_xmoneda = 24
-			Xcadenamoneda = 'DOLAR GUYANES'
+			_sincromoneda = 24
+			_sincrocadenamoneda = 'DOLAR GUYANES'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "SURINAM"
 			_sincroaregion = 28
-			_xmoneda = 25
-			Xcadenamoneda = 'DOLAR SURINAMES'
+			_sincromoneda = 25
+			_sincrocadenamoneda = 'DOLAR SURINAMES'
 		CASE ALLTRIM(csrEmpresas.NUM3) = "HAITI"
 			_sincroaregion = 29
-			_xmoneda = 26
-			Xcadenamoneda = 'GOURDE'
+			_sincromoneda = 26
+			_sincrocadenamoneda = 'GOURDE'
 		OTHERWISE
 			_sincroaregion = 99
-			_xmoneda = 1
-			Xcadenamoneda = 'PESO'
+			_sincromoneda = 1
+			_sincrocadenamoneda = 'PESO'
 	ENDCASE
 
 	DO CASE
@@ -663,17 +672,10 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 	FINALLY
 	ENDTRY
 
-	*WAIT WINDOW '_ofiltro: ' + STR(_ofiltro)
-
 	IF LEN(ALLTRIM(onombre)) = 0
 		RETURN 0
 	ENDIF
-
-	* WAIT WINDOW 'FUNCION - ' + 'otabla: ' + otabla + CHR(13) + 'onombre: ' + onombre
-
 	_alias_funcion = ALIAS()
-
-	*_otablaSQL_funcion = '_otablaSQL_funcion' + '_' + otabla
 
 	RELEASE _otablaSQL_funcion
 	PUBLIC _otablaSQL_funcion
@@ -684,8 +686,6 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 	RELEASE _idsqlmasaltoSQL
 	PUBLIC _idsqlmasaltoSQL
 
-	*WAIT WINDOW '1 - otabla: ' + o tabla + CHR(13) + 'onombre: ' + onombre
-
 	_otablaSQL_funcion = otabla
 	_ocursorSQL_funcion = 'oDb_' + otabla
 	_codigomasaltoSQL = 'Codigo_' + otabla
@@ -693,8 +693,8 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 	&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&	odb_connect()
 	_oresult = 0
 	*************************************
-	_onombre = UPPER(onombre)
 
+	_onombre = UPPER(onombre)
 	IF _ofiltro = 0
 		DO CASE
 			CASE ALLTRIM(UPPER(_otablaSQL_funcion)) == 	ALLTRIM(UPPER("ABM_REGIONES"))
@@ -706,23 +706,19 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 
 			CASE ALLTRIM(UPPER(_otablaSQL_funcion)) == 	ALLTRIM(UPPER("ABM_clientes"))
 				_IDCLIENTEq = VAL(ALLTRIM(_onombre)) && AQUI TENGO EL IDCLIENTE
-				_otablax = 'clientes'
-				IF !USED(_otablax) AND !USED(UPPER(_otablax))
-					oDb_abrir_tabla_dbf(_otablax)
-				ENDIF
-				SELECT &_otablax
-				*			BROWSE
-				GO TOP
-				LOCATE FOR idcliente = _IDCLIENTEq
-				IF FOUND()
+				cConsulta = "SELECT ALLTRIM(UPPER(nombre)) AS NOMBRE FROM clientes WHERE idcliente = " + ALLTRIM(STR(_IDCLIENTEq));
+				+" INTO CURSOR cNomCli"
+				&cConsulta
+				SELECT cNomCli
+				IF RECCOUNT() > 0
 					_onmbrex = ALLTRIM(UPPER(NOMBRE))
-					*WAIT WINDOW '_IDCLIENTEq: ' + STR(_IDCLIENTEq) + CHR(13) + 'APARECIO SE ENCUENTRA EL CLIENTE EN LA TABLA DBF' + CHR(13) + '_onmbrex: ' + _onmbrex
-
 				ELSE
-					WAIT WINDOW '_IDCLIENTEq: ' + STR(_IDCLIENTEq) + CHR(13) + 'NO SE ENCUENTRA EL CLIENTE EN LA TABLA DBF' TIMEOUT 1
-					ca_log_pasar_datos_de_empresa_a_sql('ERROR. odb_funcion_id. _IDCLIENTEq: ' + STR(_IDCLIENTEq) + CHR(13) + 'NO SE ENCUENTRA EL CLIENTE EN LA TABLA DBF')
+					*WAIT WINDOW '_IDCLIENTEq: ' + STR(_IDCLIENTEq) + CHR(13) + 'NO SE ENCUENTRA EL CLIENTE EN LA TABLA DBF' TIMEOUT 1
+					ca_log_pasar_datos_de_empresa_a_sql='ERROR. odb_funcion_id. _IDCLIENTEq: ' + STR(_IDCLIENTEq) + CHR(13) + 'NO SE ENCUENTRA EL CLIENTE EN LA TABLA DBF'
+					STRTOFILE(DTOC(DATE()) + " " + TIME() + " - "+ca_log_pasar_datos_de_empresa_a_sql+CHR(13), "error_log.txt", .T.)
 					_oresult = 0
 					RELEASE &_ocursorSQL_funcion
+					USE IN cNomCli
 					SELECT &_alias_funcion
 					RETURN _oresult
 				ENDIF
@@ -733,22 +729,18 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 				*&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 			CASE ALLTRIM(UPPER(_otablaSQL_funcion)) == 	ALLTRIM(UPPER("ABM_proveedores"))
 				_NUMPROVEEDq = VAL(ALLTRIM(_onombre)) && AQUI TENGO EL NUM DEL PROVEEDOR
-				_otablax = 'PROVEED'
-				IF !USED(_otablax) AND !USED(UPPER(_otablax))
-					oDb_abrir_tabla_dbf(_otablax)
-				ENDIF
-				SELECT &_otablax
-				GO TOP
-				LOCATE FOR NUM = _NUMPROVEEDq
-				IF FOUND()
+				cConsulta = "SELECT ALLTRIM(UPPER(nombre)) AS NOMBRE FROM tipocomprobantes WHERE NUM = " + ALLTRIM(STR(_NUMPROVEEDq));
+				+" INTO CURSOR cNomPro"
+				&cConsulta
+				SELECT cNomPro
+				IF RECCOUNT() > 0
 					_onmbrex = ALLTRIM(UPPER(NOMBRE))
-					*WAIT WINDOW '_IDCLIENTEq: ' + STR(_IDCLIENTEq) + CHR(13) + 'APARECIO SE ENCUENTRA EL CLIENTE EN LA TABLA DBF' + CHR(13) + '_onmbrex: ' + _onmbrex
-
 				ELSE
-					WAIT WINDOW '_IDCLIENTEq: ' + STR(_IDCLIENTEq) + CHR(13) + 'NO SE ENCUENTRA EL CLIENTE EN LA TABLA DBF' TIMEOUT 1
-					ca_log_pasar_datos_de_empresa_a_sql('ERROR. odb_funcion_id. _IDCLIENTEq: ' + STR(_IDCLIENTEq) + CHR(13) + 'NO SE ENCUENTRA EL CLIENTE EN LA TABLA DBF')
+					ca_log_pasar_datos_de_empresa_a_sql='ERROR. odb_funcion_id. _IDCLIENTEq: ' + STR(_IDCLIENTEq) + CHR(13) + 'NO SE ENCUENTRA EL CLIENTE EN LA TABLA DBF'
+					STRTOFILE(DTOC(DATE()) + " " + TIME() + " - "+ca_log_pasar_datos_de_empresa_a_sql+CHR(13), "error_log.txt", .T.)
 					_oresult = 0
 					RELEASE &_ocursorSQL_funcion
+					USE IN cNomPro
 					SELECT &_alias_funcion
 					RETURN _oresult
 				ENDIF
@@ -756,22 +748,19 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 
 
 			CASE ALLTRIM(UPPER(_otablaSQL_funcion)) == 	ALLTRIM(UPPER("ABM_tipos_de_comprobante"))
-
 				_TIPOCOMPROBANTEq = VAL(ALLTRIM(_onombre)) && AQUI TENGO EL TIPO_COMPROBANTE
-				_otablax = 'tipocomprobantes'
-				IF !USED(_otablax) AND !USED(UPPER(_otablax))
-					oDb_abrir_tabla_dbf(_otablax)
-				ENDIF
-				SELECT &_otablax
-				GO TOP
-				LOCATE FOR filtro = _TIPOCOMPROBANTEq
-				IF FOUND()
+				cConsulta = "SELECT ALLTRIM(UPPER(nombre)) AS NOMBRE FROM tipocomprobantes WHERE filtro = " + ALLTRIM(STR(_TIPOCOMPROBANTEq));
+				+" INTO CURSOR cNomComp"
+				&cConsulta
+				SELECT cNomComp
+				IF RECCOUNT() > 0
 					_onmbrex = ALLTRIM(UPPER(NOMBRE))
 				ELSE
-					WAIT WINDOW '_TIPOCOMPROBANTEq: ' + STR(_TIPOCOMPROBANTEq) + CHR(13) + '_onombre: ' + _onombre + CHR(13) + 'NO SE ENCUENTRA EL TIPO DE COMPROBANTE EN LA TABLA DBF' TIMEOUT 1
-					ca_log_pasar_datos_de_empresa_a_sql('ERROR. odb_funcion_id. _TIPOCOMPROBANTEq: ' + STR(_TIPOCOMPROBANTEq) + CHR(13) + 'NO SE ENCUENTRA EL TIPO DE COMPROBANTE EN LA TABLA DBF')
+					ca_log_pasar_datos_de_empresa_a_sql = 'ERROR. odb_funcion_id. _TIPOCOMPROBANTEq: ' + STR(_TIPOCOMPROBANTEq) + CHR(13) + 'NO SE ENCUENTRA EL TIPO DE COMPROBANTE EN LA TABLA DBF'
+					STRTOFILE(DTOC(DATE()) + " " + TIME() + " - "+ca_log_pasar_datos_de_empresa_a_sql+CHR(13), "error_log.txt", .T.)
 					_oresult = 0
 					RELEASE &_ocursorSQL_funcion
+					USE IN cNomComp
 					SELECT &_alias_funcion
 					RETURN _oresult
 				ENDIF
@@ -784,26 +773,21 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 
 			CASE ALLTRIM(UPPER(_otablaSQL_funcion)) == 	ALLTRIM(UPPER("ABM_depositos"))
 				_depositosq = VAL(ALLTRIM(_onombre)) && AQUI TENGO EL num del deposito
-				_otablax = 'depósitos'
-				IF !USED(_otablax) AND !USED(UPPER(_otablax))
-					oDb_abrir_tabla_dbf(_otablax)
-				ENDIF
-				SELECT &_otablax
-				GO TOP
-				LOCATE FOR NUM = _depositosq
-				IF FOUND()
+				cConsulta = "SELECT ALLTRIM(UPPER(nombre)) AS NOMBRE FROM depósitos WHERE num = " + ALLTRIM(STR(_depositosq));
+				+" INTO CURSOR cNomDep"
+				&cConsulta
+				SELECT cNomDep
+				IF RECCOUNT() > 0
 					_onmbrex = ALLTRIM(UPPER(NOMBRE))
 				ELSE
-
-					*				WAIT WINDOW '_depositosq: ' + STR(_depositosq) + CHR(13) + 'NO SE ENCUENTRA EL DEPÓSITO EN LA TABLA DBF' TIMEOUT 1
-					*browse
-					ca_log_pasar_datos_de_empresa_a_sql('ERROR. odb_funcion_id. _depositosq: ' + STR(_depositosq) + CHR(13) + 'NO SE ENCUENTRA EL DEPÓSITO EN LA TABLA DBF')
+					ca_log_pasar_datos_de_empresa_a_sql = 'ERROR. odb_funcion_id. _depositosq: ' + STR(_depositosq) + CHR(13) + 'NO SE ENCUENTRA EL DEPÓSITO EN LA TABLA DBF'
+					STRTOFILE(DTOC(DATE()) + " " + TIME() + " - "+ca_log_pasar_datos_de_empresa_a_sql+CHR(13), "error_log.txt", .T.)
 					_oresult = 0
 					RELEASE &_ocursorSQL_funcion
+					USE IN cNomDep
 					SELECT &_alias_funcion
 					RETURN _oresult
 				ENDIF
-				*WAIT WINDOW 'ANTES DEL QUERY: ' + CHR(13) + '_otablaSQL_funcion: ' + _otablaSQL_funcion + CHR(13) + '_onmbrex: ' + _onmbrex
 				odb.QUERY("select * from " + _otablaSQL_funcion + " WHERE TRIM(UPPER(nombre)) = ?TRIM(UPPER(_onmbrex)) AND  id_ABM_empresas = " + ALLTRIM(STR(_sincroaempresa)),_ocursorSQL_funcion, _otablaSQL_funcion)
 
 				*&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
@@ -811,7 +795,7 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 				*&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 				*BROWSE
-			CASE ALLTRIM(UPPER(_otablaSQL_funcion)) == 	ALLTRIM(UPPER("ABM_regiones_moneda")) && necesito saber la moneda de cierto pais: (_xregion)
+			CASE ALLTRIM(UPPER(_otablaSQL_funcion)) == 	ALLTRIM(UPPER("ABM_regiones")) && necesito saber la moneda de cierto pais: (_xregion)
 				RELEASE _ocursorSQL_1709
 				PUBLIC _ocursorSQL_1709
 				_ocursorSQL_funcion = 'oDb_' + 'ABM_regiones'
@@ -842,7 +826,7 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 				*************************************
 				&& abro 'ABM_regiones'
 				*WAIT WINDOW '1 - _otablaSQL_1709: ' + _otablaSQL_1709 + CHR(13) + '_ocursorSQL_funcion: ' + _ocursorSQL_funcion + CHR(13) + "Select * from " + _otablaSQL_1709 + " where id = " + STR(_xregion)
-				odb.QUERY("Select * from " + _otablaSQL_1709 + " where id = " + ALLTRIM(STR(_xregion)), _ocursorSQL_funcion, _otablaSQL_funcion)
+				odb.QUERY("Select * from " + _otablaSQL_1709 + " where id = " + ALLTRIM(STR(_sincroaregion)), _ocursorSQL_funcion, _otablaSQL_funcion)
 
 				*&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 				*WAIT WINDOW "odb_funcion_id - SELECT - 5" nowait noclear
@@ -1010,7 +994,8 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 	IF odb.CursorOpen(_ocursorSQL_funcion)
 	ELSE
 		WAIT WINDOW 'El cursor ' + _ocursorSQL_funcion +  ' no está abierto -1' TIMEOUT 5
-		ca_log_pasar_datos_de_empresa_a_sql('ALERTA - El cursor ' + _ocursorSQL_funcion +  ' no está abierto')
+		ca_log_pasar_datos_de_empresa_a_sql = 'ALERTA - El cursor ' + _ocursorSQL_funcion +  ' no está abierto'
+		STRTOFILE(DTOC(DATE()) + " " + TIME() + " - "+ca_log_pasar_datos_de_empresa_a_sql+CHR(13), "error_log.txt", .T.)
 		RELEASE &_ocursorSQL_funcion
 		SELECT &_alias_funcion
 		RETURN 0

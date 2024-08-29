@@ -1,5 +1,7 @@
 *_SCREEN.VISIBLE = .F.
 *SET SYSMENU TO
+CLOSE TABLES all
+
 SET TALK OFF
 SET NOTIFY OFF
 SET CURSOR OFF
@@ -17,7 +19,7 @@ lcExit = .F.  && Bandera para controlar la salida de los bucles
 DO WHILE .T.
 	* Si la bandera indica que se debe salir, romper el bucle externo
 	IF lcExit
-		STRTOFILE(DTOC(DATE()) + " " + TIME() + ">>> ME FUI "+CHR(13), "error_log.txt", .T.)
+		STRTOFILE(DTOC(DATE()) + " " + TIME() + ">>> ME FUI "+CHR(13)+CHR(13), "error_log.txt", .T.)
 		EXIT
 	ENDIF
 	TRY	
@@ -52,7 +54,7 @@ DO WHILE .T.
 			SPACE(18)+ " - Detalle: " + TRANSFORM(loError.DETAILS) + CHR(13);
 			, "error_log.txt", .T.)
 		* Reiniciar el bucle interno
-		INKEY(5) && Espera 10 segundos
+		INKEY(2) && Espera 10 segundos
 	ENDTRY
 ENDDO
 
@@ -63,8 +65,6 @@ ENDIF
 
 * Salir del programa
 CLOSE TABLES ALL
-
-*QUIT
 
 PROCEDURE HandleError
 	PARAMETERS nError, cMessage, cProcedure, cDetails, cLinecontents

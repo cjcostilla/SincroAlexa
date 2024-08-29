@@ -1,5 +1,7 @@
 *_SCREEN.VISIBLE = .F.
 *SET SYSMENU TO
+CLOSE TABLES all
+
 SET TALK OFF
 SET NOTIFY OFF
 SET CURSOR OFF
@@ -17,7 +19,7 @@ lcExit = .F.  && Bandera para controlar la salida de los bucles
 DO WHILE .T.
 	* Si la bandera indica que se debe salir, romper el bucle externo
 	IF lcExit
-		STRTOFILE(DTOC(DATE()) + " " + TIME() + ">>> ME FUI ", "error_log.txt"+CHR(13), .T.)
+		STRTOFILE(DTOC(DATE()) + " " + TIME() + ">>> ME FUI "+CHR(13)+CHR(13), "error_log.txt", .T.)
 		EXIT
 	ENDIF
 	TRY	
