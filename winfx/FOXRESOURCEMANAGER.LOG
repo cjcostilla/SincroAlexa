@@ -1,0 +1,10 @@
+27-08-2024 11:23:30 | INFO    | Registrando fichero 'D:\BORRAR\WINFX\winfx.async.dll' con RegAsm ("D:\BORRAR\WINFX\winfx.async.dll" /register /codebase /tlb)
+27-08-2024 11:23:31 | INFO    | Registro exitoso (RegAsm) fichero generado: 'D:\BORRAR\WINFX\winfx.async.tlb'
+27-08-2024 11:23:31 | INFO    | Registrando fichero 'D:\BORRAR\WINFX\winfx.fox.bridge.dll' con RegSvr32
+27-08-2024 11:23:33 | INFO    | Intentando registrar las dependencias...
+27-08-2024 11:23:33 | INFO    | Dependencias instaladas exitosamente.
+27-08-2024 11:23:33 | INFO    | Registro exitoso (RegSvr32) fichero 'D:\BORRAR\WINFX\winfx.fox.bridge.dll'
+27-08-2024 11:23:33 | INFO    | Registrando fichero 'D:\BORRAR\WINFX\winfx.logger.dll' con RegAsm ("D:\BORRAR\WINFX\winfx.logger.dll" /register /codebase /tlb)
+27-08-2024 11:23:33 | INFO    | Registro exitoso (RegAsm) fichero generado: 'D:\BORRAR\WINFX\winfx.logger.tlb'
+27-08-2024 11:23:33 | INFO    | Registrando fichero 'D:\BORRAR\WINFX\winfx.devimages.dll' con RegAsm ("D:\BORRAR\WINFX\winfx.devimages.dll" /register /codebase /tlb)
+27-08-2024 11:23:33 | INFO    | Registro exitoso (RegAsm) fichero generado: 'D:\BORRAR\WINFX\winfx.devimages.tlb'

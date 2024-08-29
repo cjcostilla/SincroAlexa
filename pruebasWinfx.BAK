@@ -1,0 +1,74 @@
+CLOSE TABLES ALL
+DO winfx\winfx.APP
+SET PROCEDURE TO foxydb ADDITIVE
+
+odb = NEWOBJECT("foxydb", "foxydb.prg")
+IF odb.CONNECTION("{MySQL ODBC 5.1 Driver}","localhost","root","alexa","alexa","3306")
+	* conexión fue exitosa
+ELSE
+	= MESSAGEBOX("NO Conectado",16,"ERROR")
+ENDIF
+
+******
+* 1 Prueba con variable como esta en el ejemplo no llama al procedimiento ni como funcion ni como procedure
+******
+*!*	TEXT TO lcScript NOSHOW
+*!*		PruebaInsert()
+*!*	ENDTEXT
+*!*	_SCREEN.winfx.ASYNC.RunAsync(lcScript,'messagebox("Finalizo insert")')
+
+******
+* 2 Prueba con llamada directa funciona pero toma el control y no suelta hasta que termine
+******
+*!*	_SCREEN.winfx.ASYNC.RunAsync(PruebaInsert(),'messagebox("Finalizo insert")')
+
+
+*MESSAGEBOX("Puedo hacer otra cosa distinta")
+
+
+
+
+*!*	FUNCTION PruebaInsert()
+cSQL=[INSERT INTO abm_rubros(codigo, nombre, observaciones, version, id_ABM_empresas,];
+	+[id_ABM_regiones, id_ABM_usuarios, datetime, ultimo_cambio, id_ABM_ultimo_usuario, eliminado, ui, sincronizacion)];
+	+[ VALUES('0007', 'ASYNCRONA', '', 1, 440, 1, 999, DATETIME(),];
+	+[ DATETIME(), 999, 0, '6b8800f8-6475-11ef-b4ed-7085c23aa0aa', 15)]
+cTablaMySQL="abm_rubros"
+*TEXT TO lcScript NOSHOW
+curTablaSQL = cTablaMySQL
+cWhereMysql = ''
+cEjecutar = "Select * from " + cTablaMySQL + " where " + IIF(EMPTY(cWhereMysql), " 2 = 1", cWhereMysql)
+TEXT TO lcScript NOSHOW text PRETEXT 1
+	*x = 1
+	*DO WHILE x<1000
+		odb.QUERY(<<cEjecutar>>, <<curTablaSQL>>,<<cTablaMySQL>>)
+		IF odb.CursorOpen(<<curTablaSQL>>)
+			IF odb.CursorEdit(<<curTablaSQL>>)
+				<<cSQL>>
+				IF odb.CursorChanges(<<curTablaSQL>>)
+					IF odb.UPDATE(<<curTablaSQL>>,.T.)
+						IF odb.Commit()
+							*UPDATE auditoria SET procesado = .T. WHERE ID = nId
+						ELSE
+							MESSAGEBOX("Error en el COMMIT de la tabla: "+ curTablaSQL)
+						ENDIF
+					ELSE
+						MESSAGEBOX("Error en el UPDATE de la tabla: "+ curTablaSQL)
+					ENDIF
+				ELSE
+					MESSAGEBOX("Error en el CURSORCHANGES de la tabla: "+ curTablaSQL)
+				ENDIF
+			ELSE
+				MESSAGEBOX("No esta Editable la tabla: "+ curTablaSQL)
+			ENDIF
+		ELSE
+			MESSAGEBOX("No esta Abierto el cursor: "+ curTablaSQL)
+		ENDIF
+	*	x = x + 1
+	*ENDDO
+ENDTEXT
+STRTOFILE(lcScript+CHR(13), "error_log.txt", .T.)
+*_SCREEN.winfx.ASYNC.RunAsync(lcScript,'messagebox("Finalizo insert")')
+*!*		RETURN .T.
+*!*	ENDFUNC
+MESSAGEBOX("Puedo hacer otra cosa distinta")

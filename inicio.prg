@@ -3,8 +3,8 @@
 SET TALK OFF
 SET NOTIFY OFF
 SET CURSOR OFF
-SET EXCLUSIVE OFF 
-SET DELETED ON 
+SET EXCLUSIVE OFF
+SET DELETED ON
 
 SET PROCEDURE TO sincro_automatica.prg, foxydb.prg ADDITIVE
 
@@ -17,10 +17,10 @@ lcExit = .F.  && Bandera para controlar la salida de los bucles
 DO WHILE .T.
 	* Si la bandera indica que se debe salir, romper el bucle externo
 	IF lcExit
-		STRTOFILE(DTOC(DATE()) + " " + TIME() + ">>> ME FUI ", "error_log.txt"+CHR(13), .T.)
+		STRTOFILE(DTOC(DATE()) + " " + TIME() + ">>> ME FUI "+CHR(13), "error_log.txt", .T.)
 		EXIT
 	ENDIF
-	TRY
+	TRY	
 		DO WHILE .T.
 			* Verificar si existe un archivo de detención
 			IF FILE("stop.txt")
@@ -40,8 +40,8 @@ DO WHILE .T.
 				SELECT csrEmpresas
 			ENDSCAN
 			* Pausa antes de la siguiente verificación
-*			lcExit = .T.
-*			EXIT
+			lcExit = .T.
+			EXIT
 			INKEY(5) && Espera 10 segundos
 		ENDDO
 	CATCH TO loError
@@ -62,7 +62,7 @@ IF FILE("stop.txt")
 ENDIF
 
 * Salir del programa
-CLOSE TABLES all
+CLOSE TABLES ALL
 
 *QUIT
 
@@ -77,3 +77,16 @@ PROCEDURE HandleError
 	* Continuar con la siguiente iteración externa
 	RETURN
 ENDPROC
+
+
+
+*!*	SELECT * FROM empresas WHERE !EMPTY(directorio) INTO CURSOR csrEmpresas
+*!*	SELECT csrEmpresas
+*!*	SCAN
+*!*		ObtenerEmpresa()
+*!*		IF !DIRECTORY(ALLTRIM(directorio))
+*!*			LOOP
+*!*		ENDIF
+*!*		Sincro_Automatica_Dbf_Sql(ALLTRIM(localidad))
+*!*		SELECT csrEmpresas
+*!*	ENDSCAN

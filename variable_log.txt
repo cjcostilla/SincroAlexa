@@ -1,0 +1,23 @@
+	odb.QUERY(Select * from abm_rubros where  2 = 1, abm_rubros,abm_rubros)
+	IF odb.CursorOpen(abm_rubros)
+		IF odb.CursorEdit(abm_rubros)
+			INSERT INTO abm_rubros(codigo, nombre, observaciones, version, id_ABM_empresas,id_ABM_regiones, id_ABM_usuarios, datetime, ultimo_cambio, id_ABM_ultimo_usuario, eliminado, ui, sincronizacion) VALUES('0007', 'ASYNCRONA', '', 1, 440, 1, 999, DATETIME(), DATETIME(), 999, 0, '6b8800f8-6475-11ef-b4ed-7085c23aa0aa', 15)
+			IF odb.CursorChanges(abm_rubros)
+				IF odb.UPDATE(abm_rubros,.T.)
+					IF odb.Commit()
+						*UPDATE auditoria SET procesado = .T. WHERE ID = nId
+					ELSE
+						MESSAGEBOX("Error en el COMMIT de la tabla: "+ curTablaSQL)
+					ENDIF
+				ELSE
+					MESSAGEBOX("Error en el UPDATE de la tabla: "+ curTablaSQL)
+				ENDIF
+			ELSE
+				MESSAGEBOX("Error en el CURSORCHANGES de la tabla: "+ curTablaSQL)
+			ENDIF
+		ELSE
+			MESSAGEBOX("No esta Editable la tabla: "+ curTablaSQL)
+		ENDIF
+	ELSE
+		MESSAGEBOX("No esta Abierto el cursor: "+ curTablaSQL)
+	ENDIF

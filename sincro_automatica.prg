@@ -1,3 +1,39 @@
+Sincro_Automatica_Sql_Dbf(cTablaDir)
+
+FUNCTION Sincro_Automatica_Sql_Dbf(cTablaDir)
+	m.xEmpresa=440
+	odb = NEWOBJECT("foxydb", "foxydb.prg")
+	IF odb.CONNECTION("{MySQL ODBC 5.1 Driver}","localhost","root","alexa","alexa","3306")
+		* conexión fue exitosa
+	ELSE
+		= MESSAGEBOX("NO Conectado",16,"ERROR")
+	ENDIF
+
+	SELECT DISTINC(tabla_mysql) AS tabla_mysql FROM mapeo;
+		WHERE !EMPTY(campo_vfp) ;
+		ORDER BY tabla_mysql INTO CURSOR curProcesoInverso
+
+	SCAN
+		* Obtener Tablas para el cambio
+		cTablaSQL = RTRIM(UPPER(curProcesoInverso.tabla_mysql))
+		curTablaSQL = "cur"+cTablaSQL
+		cEjecutar = "select * from " + cTablaSQL +" where date(ultimo_cambio) = curdate() and id_abm_empresas = "+ ALLTRIM(STR(m.xEmpresa))
+		_CLIPTEXT=cEjecutar
+		odb.QUERY(cEjecutar, curTablaSQL,cTablaSQL)
+		IF odb.CursorOpen(curTablaSQL)
+			SELECT &curTablaSQL
+			IF RECCOUNT() > 0
+				BROWSE
+			ENDIF
+		ENDIF
+		USE IN &curTablaSQL
+	ENDSCAN
+	USE IN curProcesoInverso
+	USE IN DBcursor
+	USE IN mapeo
+	RETURN .T.
+ENDFUNC
+
 FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 	* Configurar FoxyDB para la conexión a la base de datos MySQL
 	LOCAL lbEsClave
@@ -107,7 +143,7 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 				_sincroaui= odb.uuid()
 				ObtenerMapeoPersonalizado(cTablaVFP, @lcCampoPer, @lcValorPer, "U")
 				cSetMySQL = cSetMySQL + lcCampoPer
-				* Remover la última coma
+				* Remover el ultimo AND
 				cWhereMySQL = LEFT(cWhereMySQL, LEN(cWhereMySQL) - 4)
 				cSetMySQL = LEFT(cSetMySQL, LEN(cSetMySQL) - 1)
 				cSQL = "UPDATE " + cTablaMySQL + " SET " + cSetMySQL + " WHERE " + cWhereMySQL
@@ -135,31 +171,31 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 		ENDCASE
 		* Ejecutar la sentencia SQL en MySQL
 		**************************
-		curTablaSql = cTablaMySQL
+		curTablaSQL = cTablaMySQL
 		cEjecutar = "Select * from " + cTablaMySQL + " where " + IIF(EMPTY(cWhereMySQL), " 2 = 1", cWhereMySQL)
 		_CLIPTEXT=cSQL
-		odb.QUERY(cEjecutar, curTablaSql,cTablaMySQL)
-		IF odb.CursorOpen(curTablaSql)
-			IF odb.CursorEdit(curTablaSql)
+		odb.QUERY(cEjecutar, curTablaSQL,cTablaMySQL)
+		IF odb.CursorOpen(curTablaSQL)
+			IF odb.CursorEdit(curTablaSQL)
 				&cSQL
-				IF odb.CursorChanges(curTablaSql)
-					IF odb.UPDATE(curTablaSql,.T.)
+				IF odb.CursorChanges(curTablaSQL)
+					IF odb.UPDATE(curTablaSQL,.T.)
 						IF odb.Commit()
 							UPDATE auditoria SET procesado = .T. WHERE ID = nId
 						ELSE
-							MESSAGEBOX("Error en el COMMIT de la tabla: "+ curTablaSql)
+							MESSAGEBOX("Error en el COMMIT de la tabla: "+ curTablaSQL)
 						ENDIF
 					ELSE
-						MESSAGEBOX("Error en el UPDATE de la tabla: "+ curTablaSql)
+						MESSAGEBOX("Error en el UPDATE de la tabla: "+ curTablaSQL)
 					ENDIF
 				ELSE
-					MESSAGEBOX("Error en el CURSORCHANGES de la tabla: "+ curTablaSql)
+					MESSAGEBOX("Error en el CURSORCHANGES de la tabla: "+ curTablaSQL)
 				ENDIF
 			ELSE
-				MESSAGEBOX("No esta Editable la tabla: "+ curTablaSql)
+				MESSAGEBOX("No esta Editable la tabla: "+ curTablaSQL)
 			ENDIF
 		ELSE
-			MESSAGEBOX("No esta Abierto el cursor: "+ curTablaSql)
+			MESSAGEBOX("No esta Abierto el cursor: "+ curTablaSQL)
 		ENDIF
 		SELECT cursorAuditoria
 	ENDSCAN
@@ -173,7 +209,6 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 	odb.Disconnect()
 	RETURN .T.
 ENDFUNC
-
 
 FUNCTION ObtenerValorClave(cTablaVFP, cJason, cClave)
 	cTabla=ALLTRIM(UPPER(cTablaVFP))
@@ -269,7 +304,7 @@ FUNCTION NombreTabla(cDirectorio, cTabla)
 	SET STEP ON
 	LOCAL lcTabla, lnExiste
 	lnExiste = FILE(cDirectorio+cTabla + ".dbf")
-	
+
 	IF lnExiste
 		&& la tabla ya existe, agregar sufijo numérico
 		LOCAL lnSufijo
