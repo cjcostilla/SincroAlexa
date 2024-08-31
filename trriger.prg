@@ -57,11 +57,12 @@ INSERT INTO stock1 (DEPOSITO,LISTA,SUBRUBRO,RUBRO,QTY,CODIGO,ITEM,;
 					CCOSTOCPRA,CTAVENTAS,CCOSTOVTA,OBSERVAC,FTP,IDDT,;
 					ROTACION,VERSION,IDGENERAL,IMAGEN,PESO_SECO,PESO_SECO_ERROR,;
 					PESO_HUMEDO,PESO_HUMERO_ERROR);
-			VALUES ('','','PRUEBA','PRUEBA',0,'PRB-002','BARRA COD 2',;
-					'PRUEBA 2 SINCRO','','','','',0,;
+			VALUES ('','','NUEVO','NUEVA PRUEBA',0,'CBA-002','BARRA COD 2',;
+					'PRUEBA 2 NUEVO','','','','',0,;
 					0,0,'','','','',;
 					'','','','',date(),datetime(),;
 					0,1,0,'',0,0,;
 					0,0)
+
 					
 					

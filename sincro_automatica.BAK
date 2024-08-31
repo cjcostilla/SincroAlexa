@@ -94,15 +94,21 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 						LOOP
 					ENDIF
 					cValorMySQL = aCampos[i, 2]
-					IF VARTYPE(cValorMySQL) <> "N"
+					IF VARTYPE(cValorMySQL) <> "N" AND VARTYPE(cValorMySQL) <> "D" AND VARTYPE(cValorMySQL) <> "T"
 						IF (cValorMySQL = "TRUE" OR cValorMySQL = "FALSE")
 							cValorMySQL =  IIF(cValorMySQL="TRUE",1,0)
 						ELSE
-							cValorMySQL = "'" + cValorMySQL + "'"
+							IF ATC('CTOD',cValorMySQL) = 0 AND ATC('CTOT',cValorMySQL) = 0
+								cValorMySQL = "'" + cValorMySQL + "'"
+							ENDIF
 						ENDIF
 					ENDIF
 					cCamposMySQL = cCamposMySQL + cCampoMySQL + ","
-					cValoresMySQL = cValoresMySQL + TRANSFORM(cValorMySQL) + ","
+					IF VARTYPE(cValorMySQL) <> "D" AND VARTYPE(cValorMySQL) <> "T"
+						cValoresMySQL = cValoresMySQL + TRANSFORM(cValorMySQL) + ","
+					ELSE
+						cValoresMySQL = cValoresMySQL + '{}' + ","
+					ENDIF
 				ENDFOR
 				_sincroaui = odb.uuid()
 				ObtenerMapeoPersonalizado(cTablaVFP, @lcCampoPer, @lcValorPer, "I")
@@ -172,32 +178,66 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 		* Ejecutar la sentencia SQL en MySQL
 		**************************
 		curTablaSQL = cTablaMySQL
-		cEjecutar = "Select * from " + cTablaMySQL + " where " + IIF(EMPTY(cWhereMySQL), " 2 = 1", cWhereMySQL)
-		odb.QUERY(cEjecutar, curTablaSQL,cTablaMySQL)
-		IF odb.CursorOpen(curTablaSQL)
-			IF odb.CursorEdit(curTablaSQL)
-				_CLIPTEXT=cSQL
-				SET STEP ON 
-				&cSQL
-				IF odb.CursorChanges(curTablaSQL)
-					IF odb.UPDATE(curTablaSQL,.T.)
-						IF odb.Commit()
-							UPDATE auditoria SET procesado = .T. WHERE ID = nId
-						ELSE
-							MESSAGEBOX("Error en el COMMIT de la tabla: "+ curTablaSQL)
-						ENDIF
-					ELSE
-						MESSAGEBOX("Error en el UPDATE de la tabla: "+ curTablaSQL)
-					ENDIF
-				ELSE
-					MESSAGEBOX("Error en el CURSORCHANGES de la tabla: "+ curTablaSQL)
-				ENDIF
+		SET STEP ON
+		* Construir la consulta SQL
+		cEjecutar = "SELECT * FROM " + cTablaMySQL + " WHERE " + IIF(EMPTY(cWhereMySQL), "1 = 1", cWhereMySQL)
+
+		* Ejecutar la consulta y abrir el cursor
+		IF NOT odb.QUERY(cEjecutar, curTablaSQL, cTablaMySQL)
+			MESSAGEBOX("Error al ejecutar la consulta: " + cEjecutar)
+			RETURN .F.
+		ENDIF
+		* Verificar si el cursor es editable
+		IF NOT odb.CursorEdit(curTablaSQL)
+			MESSAGEBOX("No se puede editar el cursor: " + curTablaSQL)
+			RETURN .F.
+		ENDIF
+		* Ejecutar el comando SQL
+		_CLIPTEXT = cSQL
+		&cSQL
+		* Verificar los cambios en el cursor
+		IF NOT odb.CursorChanges(curTablaSQL)
+			MESSAGEBOX("Error al verificar cambios en el cursor: " + curTablaSQL)
+			RETURN .F.
+		ENDIF
+		* Intentar actualizar y confirmar cambios
+		IF odb.UPDATE(curTablaSQL, .T.)
+			IF odb.Commit()
+				* Actualizar la tabla de auditoría
+				UPDATE auditoria SET procesado = .T. WHERE ID = nId
 			ELSE
-				MESSAGEBOX("No esta Editable la tabla: "+ curTablaSQL)
+				MESSAGEBOX("Error en el COMMIT de la tabla: " + curTablaSQL)
 			ENDIF
 		ELSE
-			MESSAGEBOX("No esta Abierto el cursor: "+ curTablaSQL)
+			MESSAGEBOX("Error en el UPDATE de la tabla: " + curTablaSQL)
 		ENDIF
+
+		*!*			cEjecutar = "Select " + cCamposMySQL + " From " + cTablaMySQL + " Where " + IIF(EMPTY(cWhereMySQL), " 2 = 1", cWhereMySQL)
+		*!*			odb.QUERY(cEjecutar, curTablaSQL,cTablaMySQL)
+		*!*			IF odb.CursorOpen(curTablaSQL)
+		*!*				IF odb.CursorEdit(curTablaSQL)
+		*!*					_CLIPTEXT=cSQL
+		*!*					SET STEP ON
+		*!*					&cSQL
+		*!*					IF odb.CursorChanges(curTablaSQL)
+		*!*						IF odb.UPDATE(curTablaSQL,.T.)
+		*!*							IF odb.Commit()
+		*!*								UPDATE auditoria SET procesado = .T. WHERE ID = nId
+		*!*							ELSE
+		*!*								MESSAGEBOX("Error en el COMMIT de la tabla: "+ curTablaSQL)
+		*!*							ENDIF
+		*!*						ELSE
+		*!*							MESSAGEBOX("Error en el UPDATE de la tabla: "+ curTablaSQL)
+		*!*						ENDIF
+		*!*					ELSE
+		*!*						MESSAGEBOX("Error en el CURSORCHANGES de la tabla: "+ curTablaSQL)
+		*!*					ENDIF
+		*!*				ELSE
+		*!*					MESSAGEBOX("No esta Editable la tabla: "+ curTablaSQL)
+		*!*				ENDIF
+		*!*			ELSE
+		*!*				MESSAGEBOX("No esta Abierto el cursor: "+ curTablaSQL)
+		*!*			ENDIF
 		SELECT cursorAuditoria
 	ENDSCAN
 	* Cerrar la conexión a MySQL
@@ -229,20 +269,102 @@ FUNCTION ObtenerValorClave(cTablaVFP, cJason, cClave)
 			lcValor = STREXTRACT(lcSubcadena, ":", "}", 1)
 		ENDIF
 		* Eliminar posibles espacios en blanco o comillas
-
 		lcValor = ALLTRIM(STRTRAN(lcValor, '"', ''))
-		IF lcValor=="FALSE"
-			lcValor='0'
-		ENDIF 
-		IF lcValor=="TRUE"
-			lcValor='1'
-		ENDIF 
 		lcClave = ALLTRIM(STRTRAN(STRTRAN(lcClave, '"', ''), ':', ''))
 	ENDIF
+	DO CASE
+		CASE ISNUMERIC(lcValor)
+			lcValor = lcValor
+		CASE ContainsDate(lcValor)
+			IF ATC(':',lcValor,1) > 0 AND ATC(':',lcValor,2) > 0
+				lcValor = "CTOT('" + lcValor+ "')"
+			ELSE
+				lcValor = "CTOD('" + lcValor+ "')"
+			ENDIF
+		CASE ContainsDateTime(lcValor)
+			IF ATC(':',lcValor,1) > 0 AND ATC(':',lcValor,2) > 0
+				lcValor = "CTOT('" + lcValor+ "')"
+			ELSE
+				lcValor = "CTOD('" + lcValor+ "')"
+			ENDIF
+		CASE ContainsEmptyDate(lcValor)
+			lcValor = {}
+		CASE ContainsEmptyDateTime(lcValor)
+			lcValor = {}
+		OTHERWISE
+			IF lcValor='false' OR lcValor='true'
+				lcValor = IIF(lcValor='false',.F.,.T.)
+			ELSE
+				lcValor = lcValor
+			ENDIF
+	ENDCASE
 	RETURN lcValor
 ENDFUNC
+*********************************************
 
+FUNCTION ContainsDate(lcText)
+	LOCAL lnPos, lcDate
+	FOR lnPos = 1 TO LEN(lcText) &&- 9
+		lcDate = SUBSTR(lcText, lnPos, 10)
+		IF ISDATE(lcDate)
+			RETURN .T.
+		ENDIF
+	ENDFOR
+	RETURN .F.
+ENDFUNC
 
+FUNCTION ISDATE(lcDate)
+	LOCAL lnDate
+	lnDate = CTOD(lcDate)
+	RETURN !EMPTY(lnDate)
+ENDFUNC
+
+FUNCTION ContainsDateTime(lcText)
+	LOCAL lnPos, lcDateTime
+	FOR lnPos = 1 TO LEN(lcText) &&- 18
+		lcDateTime = SUBSTR(lcText, lnPos, 19)
+		IF ISDATETIME(lcDateTime)
+			RETURN .T.
+		ENDIF
+	ENDFOR
+	RETURN .F.
+ENDFUNC
+
+FUNCTION ISDATETIME(lcDateTime)
+	LOCAL lnDateTime
+	lnDateTime = CTOT(lcDateTime)
+	RETURN !EMPTY(lnDateTime)
+ENDFUNC
+
+FUNCTION ContainsEmptyDate(lcText)
+	RETURN AT("/  /", lcText) > 0
+ENDFUNC
+
+FUNCTION ContainsEmptyDateTime(lcText)
+	RETURN AT("/  /       :  :   AM", lcText) > 0
+ENDFUNC
+
+FUNCTION ISNUMERIC(lcValue)
+	LOCAL lcTemp, i
+	lcTemp = ALLTRIM(lcValue)
+
+	* Si la cadena está vacía, no es un número
+	IF EMPTY(lcTemp)
+		RETURN .F.
+	ENDIF
+
+	* Verificar si la cadena contiene solo dígitos y opcionalmente un punto decimal
+	FOR i = 1 TO LEN(lcTemp)
+		IF NOT (SUBSTR(lcTemp, i, 1) >= '0' AND SUBSTR(lcTemp, i, 1) <= '9') AND ;
+				NOT (SUBSTR(lcTemp, i, 1) == '.')
+			RETURN .F.
+		ENDIF
+	ENDFOR
+
+	RETURN .T.
+ENDFUNC
+
+*********************************************
 FUNCTION ObtenerClaveTabla(cTablaVFP, cJason)
 	cTabla=ALLTRIM(UPPER(cTablaVFP))
 	lcJson = ALLTRIM(cJason)
@@ -340,10 +462,10 @@ ENDFUNC
 
 FUNCTION ObtenerEmpresa()
 	PUBLIC _sincroaempresa, _sincroaregion, _sincroausuario, _sincroarutadato
-	PUBLIC _sincroaui, _sincromoneda, _sincrocadenamoneda 
+	PUBLIC _sincroaui, _sincromoneda, _sincrocadenamoneda
 	SELECT csrEmpresas
 	_sincroaempresa = csrEmpresas.IDS
-	_sincroarutadato = ALLTRIM(csrEmpresas.Directorio)
+	_sincroarutadato = ALLTRIM(csrEmpresas.DIRECTORIO)
 	_sincroausuario = 999
 	_sincroaui = ''
 	_sincromoneda = 0
@@ -483,7 +605,7 @@ FUNCTION ObtenerEmpresa()
 ENDFUNC
 
 FUNCTION ParseJson(tcJSON,aCampos)
-	LOCAL lcKey, lcValue, lcJson, lnPos, lnColonPos, lnCommaPos
+	LOCAL lcKey, lcValue, lcJson, lnPos, lnColonPos, lnCommaPos, lcMiValor
 	LOCAL ARRAY aCampos[1, 2]
 	LOCAL lnIndex
 	lnIndex = 1
@@ -507,24 +629,27 @@ FUNCTION ParseJson(tcJSON,aCampos)
 		* Quitar comillas de las claves y valores
 		lcKey = STRTRAN(lcKey, '"', "")
 		lcValue = STRTRAN(lcValue, '"', "")
-
 		* Almacenar en el array
-		lcTipoDato = TYPE(lcValue)
+		lcTipoDato = varTYPE(lcValue)
 		DO CASE
-			CASE lcTipoDato = "C"  && Carácter
-				lcValue = lcValue
-			CASE lcTipoDato = "N"  && Numérico
+			CASE ISNUMERIC(lcValue)
 				lcValue = VAL(lcValue)
-			CASE lcTipoDato = "D"  && Fecha
-				lcValue = CTOD(lcValue)
-			CASE lcTipoDato = "T"  && DateTime
-				lcValue = CTOT(lcValue)
-			CASE lcTipoDato = "L"  && Lógico
-				lcValue = IIF(lcValue = "T", .T., .F.)
-			CASE lcTipoDato = "M"  && Memo
-				lcValue = MEMLINES(lcValue)
-			OTHERWISE  && Otros tipos de datos
-				lcValue = TRANSFORM(lcValue)
+			CASE ContainsDate(lcValue)
+				IF ATC(':',lcValue,1) > 0 AND ATC(':',lcValue,2) > 0
+					lcValue = "CTOT('" + lcValue + "')"
+				ELSE
+					lcValue = "CTOD('" + lcValue + "')"
+				ENDIF
+			CASE ContainsDateTime(lcValue)
+				IF ATC(':',lcValue,1) > 0 AND ATC(':',lcValue,2) > 0
+					lcValue = "CTOT('" + lcValue + "')"
+				ENDIF
+			CASE ContainsEmptyDate(lcValue)
+				lcValue = {}
+			CASE ContainsEmptyDateTime(lcValue)
+				lcValue = {}
+			OTHERWISE
+				lcValue = lcValue
 		ENDCASE
 		DIMENSION aCampos[lnIndex, 2]
 		aCampos[lnIndex, 1] = lcKey
@@ -542,7 +667,7 @@ FUNCTION ObtenerMapeo(tcTablaVFP, tcCampoVFP, tcTipo, lbEsClave)
 	* Buscar el nombre mapeado en la tabla de mapeo
 	SELECT tabla_mysql, campo_mysql, clave;
 		FROM mapeo ;
-		WHERE UPPER(tabla_vfp) = tcTablaVFP AND UPPER(campo_vfp) = tcCampoVFP ;
+		WHERE UPPER(tabla_vfp) = tcTablaVFP AND ALLTRIM(UPPER(campo_vfp)) == tcCampoVFP ;
 		INTO CURSOR cursorMap
 
 	* Inicializar el valor de retorno de es_clave
@@ -617,7 +742,11 @@ FUNCTION ObtenerMapeoPersonalizado(tcTablaVFP, lcCampoPer, lcValorPer, lcOperaci
 							IF lcMappedName == "''" OR lcMappedName == '""'
 								lcMappedName = "''"
 							ELSE
-								lcMappedName = "'" + ALLTRIM(lcMappedName) + "'"
+								IF ATC('CTOD',lcMappedName) = 0 AND ATC('CTOT',lcMappedName) = 0
+									lcMappedName = "'" + ALLTRIM(lcMappedName) + "'"
+								ELSE
+									lcMappedName = ALLTRIM(lcMappedName)
+								ENDIF
 							ENDIF
 						ENDIF
 					CASE lcTipoDato = "N"  && Numérico
@@ -636,10 +765,28 @@ FUNCTION ObtenerMapeoPersonalizado(tcTablaVFP, lcCampoPer, lcValorPer, lcOperaci
 				DO CASE
 					CASE lcOperacion = "I"
 						lcCampoPer = lcCampoPer + RTRIM(cursorMap.campo_mysql) + ','
-						lcValorPer = lcValorPer + ALLTRIM(TRANSFORM(lcMappedName)) + ","
+						IF lcTipoDato <> "L"
+							IF ATC('/  /',lcMappedName) > 0 AND EMPTY(lcResultadoFuncion)
+								lcValorPer = lcValorPer + "CTOD("+lcMappedName+")" + ","
+							ELSE
+								lcValorPer = lcValorPer + ALLTRIM(TRANSFORM(lcMappedName)) + ","
+							ENDIF
+						ELSE
+							lcValorPer = lcValorPer + ALLTRIM(TRANSFORM(lcMappedName)) + ","
+						ENDIF
 					CASE lcOperacion = "U"
-						lcCampoPer = lcCampoPer + ;
-							RTRIM(cursorMap.campo_mysql) + ' = ' + ALLTRIM(TRANSFORM(lcMappedName)) + ","
+						IF lcTipoDato <> "L"
+							IF ATC('/  /',lcMappedName) > 0 AND EMPTY(lcResultadoFuncion)
+								lcCampoPer = lcCampoPer + ;
+									RTRIM(cursorMap.campo_mysql) + ' = ' + "CTOD("+lcMappedName+")" + ","
+							ELSE
+								lcCampoPer = lcCampoPer + ;
+									RTRIM(cursorMap.campo_mysql) + ' = ' + ALLTRIM(TRANSFORM(lcMappedName)) + ","
+							ENDIF
+						ELSE
+							lcCampoPer = lcCampoPer + ;
+								RTRIM(cursorMap.campo_mysql) + ' = ' + ALLTRIM(TRANSFORM(lcMappedName)) + ","
+						ENDIF
 						IF cursorMap.clave
 							cWhereMySQL = cWhereMySQL + RTRIM(cursorMap.campo_mysql) + ' = ' + ALLTRIM(TRANSFORM(lcMappedName)) + " AND "
 						ENDIF
@@ -707,7 +854,7 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 			CASE ALLTRIM(UPPER(_otablaSQL_funcion)) == 	ALLTRIM(UPPER("ABM_clientes"))
 				_IDCLIENTEq = VAL(ALLTRIM(_onombre)) && AQUI TENGO EL IDCLIENTE
 				cConsulta = "SELECT ALLTRIM(UPPER(nombre)) AS NOMBRE FROM clientes WHERE idcliente = " + ALLTRIM(STR(_IDCLIENTEq));
-				+" INTO CURSOR cNomCli"
+					+" INTO CURSOR cNomCli"
 				&cConsulta
 				SELECT cNomCli
 				IF RECCOUNT() > 0
@@ -730,7 +877,7 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 			CASE ALLTRIM(UPPER(_otablaSQL_funcion)) == 	ALLTRIM(UPPER("ABM_proveedores"))
 				_NUMPROVEEDq = VAL(ALLTRIM(_onombre)) && AQUI TENGO EL NUM DEL PROVEEDOR
 				cConsulta = "SELECT ALLTRIM(UPPER(nombre)) AS NOMBRE FROM tipocomprobantes WHERE NUM = " + ALLTRIM(STR(_NUMPROVEEDq));
-				+" INTO CURSOR cNomPro"
+					+" INTO CURSOR cNomPro"
 				&cConsulta
 				SELECT cNomPro
 				IF RECCOUNT() > 0
@@ -750,7 +897,7 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 			CASE ALLTRIM(UPPER(_otablaSQL_funcion)) == 	ALLTRIM(UPPER("ABM_tipos_de_comprobante"))
 				_TIPOCOMPROBANTEq = VAL(ALLTRIM(_onombre)) && AQUI TENGO EL TIPO_COMPROBANTE
 				cConsulta = "SELECT ALLTRIM(UPPER(nombre)) AS NOMBRE FROM tipocomprobantes WHERE filtro = " + ALLTRIM(STR(_TIPOCOMPROBANTEq));
-				+" INTO CURSOR cNomComp"
+					+" INTO CURSOR cNomComp"
 				&cConsulta
 				SELECT cNomComp
 				IF RECCOUNT() > 0
@@ -774,7 +921,7 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 			CASE ALLTRIM(UPPER(_otablaSQL_funcion)) == 	ALLTRIM(UPPER("ABM_depositos"))
 				_depositosq = VAL(ALLTRIM(_onombre)) && AQUI TENGO EL num del deposito
 				cConsulta = "SELECT ALLTRIM(UPPER(nombre)) AS NOMBRE FROM depósitos WHERE num = " + ALLTRIM(STR(_depositosq));
-				+" INTO CURSOR cNomDep"
+					+" INTO CURSOR cNomDep"
 				&cConsulta
 				SELECT cNomDep
 				IF RECCOUNT() > 0
@@ -925,6 +1072,7 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 
 				SELECT &_ocursorSQL_funcion
 			CASE ALLTRIM(UPPER(_otablaSQL_funcion)) == 	ALLTRIM(UPPER("ABM_articulos"))
+				SET STEP ON 
 				_numarticq = VAL(ALLTRIM(_onombre)) && AQUI TENGO EL _numartic
 				RELEASE _ocursorSQL_1709
 				PUBLIC _ocursorSQL_1709
@@ -1018,6 +1166,71 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 
 	ELSE   &&& no lo encontró
 		_oresult = 0
+	ENDIF &&& no lo encontró
+
+	RELEASE &_ocursorSQL_funcion
+	SELECT &_alias_funcion
+	RETURN _oresult
+ENDFUNC
+
+
+FUNCTION SQL_oDb_funcion_COD(otabla, onombre, ofiltro)
+
+	SET TABLEPROMPT OFF
+	SET CPDIALOG OFF
+	SET DELETED ON
+	SET TALK OFF
+	SET CONSOLE OFF
+	SET SAFETY OFF
+	SET CONSOLE OFF
+	TRY
+		IF ofiltro = .F.
+			_ofiltro = 0
+		ENDIF
+	CATCH TO oex
+		_ofiltro = ofiltro
+	FINALLY
+	ENDTRY
+	IF LEN(ALLTRIM(onombre)) = 0
+		RETURN ''
+	ENDIF
+	_alias_funcion = ALIAS()
+	RELEASE _otablaSQL_funcion
+	PUBLIC _otablaSQL_funcion
+	RELEASE _ocursorSQL_funcion
+	PUBLIC _ocursorSQL_funcion
+	RELEASE _codigomasaltoSQL
+	PUBLIC _codigomasaltoSQL
+	RELEASE _idsqlmasaltoSQL
+	PUBLIC _idsqlmasaltoSQL
+
+	_otablaSQL_funcion = otabla
+	_ocursorSQL_funcion = 'oDb_' + otabla
+	_codigomasaltoSQL = 'Codigo_' + otabla
+	_idsqlmasaltoSQL = 'Idsql_' + otabla
+	&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&	odb_connect()
+	_oresult = ''
+	*************************************
+	_onombre = UPPER(onombre)
+	odb.CONNECT()
+	odb.QUERY("select * from " + _otablaSQL_funcion + " WHERE TRIM(UPPER(nombre)) = ?TRIM(UPPER(_onombre)) AND  id_ABM_empresas = " + ALLTRIM(STR(_sincroaempresa)), _ocursorSQL_funcion, _otablaSQL_funcion)
+	IF odb.CursorOpen(_ocursorSQL_funcion)
+	ELSE
+		ca_log_pasar_datos_de_empresa_a_sql = 'ALERTA - El cursor ' + _ocursorSQL_funcion +  ' no está abierto'
+		STRTOFILE(DTOC(DATE()) + " " + TIME() + " - "+ca_log_pasar_datos_de_empresa_a_sql+CHR(13), "error_log.txt", .T.)
+		RELEASE &_ocursorSQL_funcion
+		SELECT &_alias_funcion
+		RETURN ''
+	ENDIF
+
+	SELECT &_ocursorSQL_funcion
+	COUNT TO _cuantos_funcion
+	IF _cuantos_funcion > 0   && lo encontró
+		GO 1
+		_oresult = CODIGO&&id
+
+	ELSE   &&& no lo encontró
+		_oresult = ''
 	ENDIF &&& no lo encontró
 
 	RELEASE &_ocursorSQL_funcion

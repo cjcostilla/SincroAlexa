@@ -2,11 +2,11 @@
 * JSON de ejemplo
 lcJson = '{"ANULADA": false, "CONFORMAR": "  /  /    ", "ENTREGA": "  /  /       :  :   AM", ' + ;
 	'"ENTREGA1": "01/10/22", "FTP": "  /  /    ", "VENDEDOR1": "A A", "FECHAHORA": "10/01/2022 01:42:53 AM", ' + ;
-	'"IVA1": 0, "NETO": 21033, "IMP1": 0.25, "IMP2": 0, "BONIF": 0}'
+	'"IVA1": 0, "NETO": 21033, "IMP1": 0, "IMP2": 0, "BONIF": 0}'
 
 * Eliminar las llaves del JSON
 lcJson = STRTRAN(STRTRAN(lcJson, '{', ''), '}', '')
-cClave="imp1"
+cClave="anulada"
 lcClave = '"'+ALLTRIM(UPPER(cClave))+'":'
 * Buscar la posición de la clave en la cadena JSON
 lnPosClave = AT(lcClave, lcJson)

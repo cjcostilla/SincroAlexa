@@ -22,7 +22,7 @@ INSERT INTO remi2 VALUES (575651, 'Servicio', 0, '', 'BLUSA BLANCA PLANTA', 1, 0
   '', '', '', '', '', '', 0, 3664375, 0, 1, {}, {}, '', 0, 0, 0, '', '', 0, '', 0, '', 0, '', 0, '',
    0, '', 0, '', 0, '', 0, '', 0, '', 0, '', 0, '', {}, {}, '', 0, 0, 0,DATETIME(),'I')
 ENDTEXT 
-&cejecutar2
+*&cejecutar2
 
 TEXT TO cejecutar3 NOSHOW  PRETEXT 15
 INSERT INTO remi2 VALUES (575651, 'Servicio', 0, 'MASD', 'MASCARILLAS DESECHABLES', 4, 0.0100, 0.0300, 0.0400, 0, 1, 
@@ -30,7 +30,7 @@ INSERT INTO remi2 VALUES (575651, 'Servicio', 0, 'MASD', 'MASCARILLAS DESECHABLE
 '', 0, 1113,'', '', '', '', '', '', 0, 3664376, 0, 2, {}, {}, '', 0, 0, 0, '', '', 0, '', 0, '', 0, '', 0, '', 0,
  '', 0, '', 0, '', 0, '', 0, '', 0, '', 0, '',{},{}, '', 0, 0, 0,DATETIME(),'I')
 ENDTEXT 
-&cejecutar3
+*&cejecutar3
 
 TEXT TO cClientes NOSHOW  PRETEXT 15
 INSERT INTO clientes VALUES (25, 'CODELCO', '', '', '', '', '', '', '', '', '', '', '', '', 'NORMAL', 'Consumidor Final', '', '', '', 'GENERAL', 'NESTLE', .F., {}, CTOD('07/11/22'), CTOT('07/11/22 05:58:06 PM'), 41530, 164, '', '', 0, 0, '', 0, 0, 0, 2928, 2, 0, '', '', '', '', '', .F., .F., .F., .F., .F., .F., .F., 0, '', '', 'AGRUPADO', '', '',{}, '', {}, '', '', '', '', 0, '', {}, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 0, '', 0, 0, 0, CTOT('10/26/23 05:28:18 PM'))
