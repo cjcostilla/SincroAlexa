@@ -35,6 +35,7 @@ SCAN
 				cConsulta = GenerarConsultaVFP(cTablaSQL,'I',@cTablaVFP)
 			ENDIF
 			_CLIPTEXT = cConsulta
+			&cConsulta
 			SELECT &curTablaSQL
 		ENDSCAN
 		SCAN FOR eliminado = 1
@@ -45,6 +46,7 @@ SCAN
 				cConsulta = GenerarConsultaVFP(cTablaSQL,'D',@cTablaVFP)
 			ENDIF
 			_CLIPTEXT = cConsulta
+			&cConsulta
 			SELECT &curTablaSQL
 		ENDSCAN
 		IF USED(cTablaVFP)
@@ -62,7 +64,7 @@ FUNCTION GenerarConsultaVFP(cTablaSQL,cTipoConsulta,pTablaVFP)
 	SELECT * FROM mapeo WHERE !EMPTY(campo_vfp) AND ALLTRIM(tabla_mysql) = ALLTRIM(cTablaSQL);
 		INTO CURSOR curArmarSentencia
 	SELECT curArmarSentencia
-	cConsulta = 'Select * From ' + ALLTRIM(Tabla_vfp) + " Where iddt < cur" + ALLTRIM(tabla_mysql) + ".ultimo_cambio AND "
+	cConsulta = 'Select * From ' + ALLTRIM(Tabla_vfp) + " Where ultimo_cambio < cur" + ALLTRIM(tabla_mysql) + ".ultimo_cambio AND "
 	cInsert = 'Insert into ' + ALLTRIM(Tabla_vfp) + "("
 	cValues = ' Values ('
 	cUpdate = 'Update ' + ALLTRIM(Tabla_vfp) + " Set "

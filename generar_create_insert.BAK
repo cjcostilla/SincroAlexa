@@ -1,12 +1,14 @@
 * Definir la ruta del archivo de texto de salida
-lcOutputFile = "Tabla_.sql"
+lcOutputFile = "Tabla_sincro.sql"
 
 * Crear o limpiar el archivo de texto
 STRTOFILE("", lcOutputFile, 0)
 
 * Listar las tablas que necesitas procesar
 LOCAL ARRAY aTablas[2]
-aTablas[1] = "remi1"  && 
+aTablas[1] = "auditoria"  && 
+aTablas[2] = "mapeo"  && 
+*aTablas[1] = "tipocomprobantes"  && 
 *!*	aTablas[1] = "articulo_univoco1"  && abm_articulo_univoco
 *!*	aTablas[2] = "depósitos"  && abm_depositos
 *!*	aTablas[3] = "empleados_cliente"  && abm_empleados_del_cliente
@@ -16,7 +18,6 @@ aTablas[1] = "remi1"  &&
 *!*	aTablas[7] = "subrubro"  && abm_subrubros
 *!*	aTablas[8] = "unidadmedida"  && abm_unidades_de_medida
 *!*	aTablas[9] = "colores"  && abm_colores
-	aTablas[2] = "remi2"  && abm_articulos
 * Más nombres de tablas si es necesario
 
 * Iterar sobre las tablas
@@ -79,7 +80,7 @@ FOR lnTabla = 1 TO ALEN(aTablas, 1)
 
 		* Obtener los registros y crear sentencias INSERT INTO
 		SELECT (lcTabla)
-		SCAN RECNO() < 11
+		SCAN &&RECNO() < 11
 			lcInsertInto = "INSERT INTO " + lcTabla + " VALUES ("
 
 			FOR lnCampo = 1 TO ALEN(aEstructura, 1)

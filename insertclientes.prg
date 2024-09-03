@@ -33,12 +33,18 @@ ENDTEXT
 &cejecutar3
 
 TEXT TO cClientes NOSHOW  PRETEXT 15
-INSERT INTO clientes VALUES (25, 'CODELCO', '', '', '', '', '', '', '', '', '', '', '', '', 'NORMAL', 'Consumidor Final', '', '', '', 'GENERAL', 'NESTLE', .F., {}, CTOD('07/11/22'), CTOT('07/11/22 05:58:06 PM'), 41530, 164, '', '', 0, 0, '', 0, 0, 0, 2928, 2, 0, '', '', '', '', '', .F., .F., .F., .F., .F., .F., .F., 0, '', '', 'AGRUPADO', '', '',{}, '', {}, '', '', '', '', 0, '', {}, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 0, '', 0, 0, 0, CTOT('10/26/23 05:28:18 PM'))
+INSERT INTO clientes VALUES (26, 'JAVIER', '', '', '', '', '', '', '', '', '', '', '', '', 'NORMAL', 'Consumidor Final', '', '',
+'', 'GENERAL', 'NESTLE', .F., {}, CTOD('07/11/22'), CTOT('07/11/22 05:58:06 PM'), 41530, 164, '', '', 0, 0, '', 0, 0, 0, 
+2928, 2, 0, '', '', '', '', '', .F., .F., .F., .F., .F., .F., .F., 0, '', '', 'AGRUPADO', '', '',{}, '', {}, '', '', '', '', 
+0, '', {}, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 0, '', 0, 0, 0, 
+CTOT('10/26/23 05:28:18 PM'),DATETIME(),'A')
 ENDTEXT 
-*&cClientes
+&cClientes
 
 
+BROWSE FIELDS codigo,nombre,domicilio,codigo_postal,documento,telefono_1,fax,email,clave_impositiva,fecha_de_nacimiento,sincronizacion,radio,domicilio_de_entrega,nombre_de_fantasia,telefono_2,telefono_3,website,contacto_1,logo_cliente,contacto_2,cargo_2,email_1,email_2,retencion_fuente,retencion_iva,retencion_ica,id_abm_localidades,id_abm_provincias,id_abm_ciudades,id_abm_municipios,id_abm_regiones_1,cargo_1,contacto_3,cargo_3,email_3,id_abm_calificacion_de_clientes,id_abm_categoria_impositiva,id_abm_asientos_automaticos_ventas,id_abm_cuentas_contables,id_abm_politica_de_precios_articulos,id_abm_politica_de_precios_servicios,activo,observaciones,datetime,ultimo_cambio,eliminado,ui,version,id_abm_empresas,id_abm_regiones,id_abm_usuarios,id_abm_ultimo_usuario
 
 
-
+VALUES (25,'CODELCO','','','','','','','',.NULL.,164,'','','','','AGRUPADO','','','','','','','',0,0,0,0,0,0,0,0,
+'','','','',0,0,0,0,0,0,0,'',DATETIME(),DATETIME(),0,'6f70d760-69b6-11ef-9cdf-7085c23aa0aa',version + 1,440,1,999,999)
 

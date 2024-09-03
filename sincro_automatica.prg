@@ -12,7 +12,6 @@ FUNCTION Sincro_Automatica_Sql_Dbf(cTablaDir)
 	SELECT DISTINC(tabla_mysql) AS tabla_mysql FROM mapeo;
 		WHERE !EMPTY(campo_vfp) ;
 		ORDER BY tabla_mysql INTO CURSOR curProcesoInverso
-
 	SCAN
 		* Obtener Tablas para el cambio
 		cTablaSQL = RTRIM(UPPER(curProcesoInverso.tabla_mysql))
@@ -107,7 +106,7 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 					IF VARTYPE(cValorMySQL) <> "D" AND VARTYPE(cValorMySQL) <> "T"
 						cValoresMySQL = cValoresMySQL + TRANSFORM(cValorMySQL) + ","
 					ELSE
-						cValoresMySQL = cValoresMySQL + '{}' + ","
+						cValoresMySQL = cValoresMySQL + 'NULL' + ","
 					ENDIF
 				ENDFOR
 				_sincroaui = odb.uuid()
@@ -178,7 +177,6 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 		* Ejecutar la sentencia SQL en MySQL
 		**************************
 		curTablaSQL = cTablaMySQL
-		SET STEP ON
 		* Construir la consulta SQL
 		cEjecutar = "SELECT * FROM " + cTablaMySQL + " WHERE " + IIF(EMPTY(cWhereMySQL), "2 = 1", cWhereMySQL)
 
@@ -194,6 +192,7 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 		ENDIF
 		* Ejecutar el comando SQL
 		_CLIPTEXT = cSQL
+		SET STEP ON 
 		&cSQL
 		* Verificar los cambios en el cursor
 		IF NOT odb.CursorChanges(curTablaSQL)
@@ -211,33 +210,6 @@ FUNCTION Sincro_Automatica_Dbf_Sql(cTablaDir)
 		ELSE
 			MESSAGEBOX("Error en el UPDATE de la tabla: " + curTablaSQL)
 		ENDIF
-
-		*!*			cEjecutar = "Select " + cCamposMySQL + " From " + cTablaMySQL + " Where " + IIF(EMPTY(cWhereMySQL), " 2 = 1", cWhereMySQL)
-		*!*			odb.QUERY(cEjecutar, curTablaSQL,cTablaMySQL)
-		*!*			IF odb.CursorOpen(curTablaSQL)
-		*!*				IF odb.CursorEdit(curTablaSQL)
-		*!*					_CLIPTEXT=cSQL
-		*!*					SET STEP ON
-		*!*					&cSQL
-		*!*					IF odb.CursorChanges(curTablaSQL)
-		*!*						IF odb.UPDATE(curTablaSQL,.T.)
-		*!*							IF odb.Commit()
-		*!*								UPDATE auditoria SET procesado = .T. WHERE ID = nId
-		*!*							ELSE
-		*!*								MESSAGEBOX("Error en el COMMIT de la tabla: "+ curTablaSQL)
-		*!*							ENDIF
-		*!*						ELSE
-		*!*							MESSAGEBOX("Error en el UPDATE de la tabla: "+ curTablaSQL)
-		*!*						ENDIF
-		*!*					ELSE
-		*!*						MESSAGEBOX("Error en el CURSORCHANGES de la tabla: "+ curTablaSQL)
-		*!*					ENDIF
-		*!*				ELSE
-		*!*					MESSAGEBOX("No esta Editable la tabla: "+ curTablaSQL)
-		*!*				ENDIF
-		*!*			ELSE
-		*!*				MESSAGEBOX("No esta Abierto el cursor: "+ curTablaSQL)
-		*!*			ENDIF
 		SELECT cursorAuditoria
 	ENDSCAN
 	* Cerrar la conexión a MySQL
@@ -288,9 +260,9 @@ FUNCTION ObtenerValorClave(cTablaVFP, cJason, cClave)
 				lcValor = "CTOD('" + lcValor+ "')"
 			ENDIF
 		CASE ContainsEmptyDate(lcValor)
-			lcValor = {}
+			lcValor = NULL
 		CASE ContainsEmptyDateTime(lcValor)
-			lcValor = {}
+			lcValor = NULL
 		OTHERWISE
 			IF lcValor='false' OR lcValor='true'
 				lcValor = IIF(lcValor='false',.F.,.T.)
@@ -400,9 +372,8 @@ FUNCTION GenerarBackup
 	LOCAL lc_RutaBackup, lc_NombreArchivoBackup
 	SELECT MIN(TTOD(fecha)) AS fecha;
 		FROM auditoria INTO CURSOR curFechaBackup
-	lnFechaUltimoBackup = curFechaBackup.fecha
+	lnFechaUltimoBackup = curFechaBackup.fecha 
 	IF DATE() > lnFechaUltimoBackup AND !ISNULL(lnFechaUltimoBackup)
-
 		* Definir la ruta y nombre de la carpeta y archivo de backup
 		lc_RutaBackup = ALLTRIM(UPPER(EMPRESAS.DIRECTORIO)) + "AUDITORIAS\"
 		lc_NombreArchivoBackup = "Auditoria" + ALLTRIM(STR(YEAR(lnFechaUltimoBackup)));
@@ -645,9 +616,9 @@ FUNCTION ParseJson(tcJSON,aCampos)
 					lcValue = "CTOT('" + lcValue + "')"
 				ENDIF
 			CASE ContainsEmptyDate(lcValue)
-				lcValue = {}
+				lcValue = NULL
 			CASE ContainsEmptyDateTime(lcValue)
-				lcValue = {}
+				lcValue = NULL
 			OTHERWISE
 				lcValue = lcValue
 		ENDCASE
@@ -729,6 +700,7 @@ FUNCTION ObtenerMapeoPersonalizado(tcTablaVFP, lcCampoPer, lcValorPer, lcOperaci
 
 					* Si poner_funcion tiene contenido, ejecutarla
 					IF NOT EMPTY(lcPonerFuncion)
+						*SET STEP ON 
 						lcResultadoFuncion = EVAL(lcPonerFuncion)
 						lcMappedName = lcResultadoFuncion
 					ENDIF
@@ -767,7 +739,11 @@ FUNCTION ObtenerMapeoPersonalizado(tcTablaVFP, lcCampoPer, lcValorPer, lcOperaci
 						lcCampoPer = lcCampoPer + RTRIM(cursorMap.campo_mysql) + ','
 						IF lcTipoDato <> "L"
 							IF ATC('/  /',lcMappedName) > 0 AND EMPTY(lcResultadoFuncion)
-								lcValorPer = lcValorPer + "CTOD("+lcMappedName+")" + ","
+								IF EMPTY(CTOD(lcMappedName))
+									lcValorPer = lcValorPer + "NULL" + ","
+								ELSE 
+									lcValorPer = lcValorPer + "CTOD("+lcMappedName+")" + ","
+								ENDIF 
 							ELSE
 								lcValorPer = lcValorPer + ALLTRIM(TRANSFORM(lcMappedName)) + ","
 							ENDIF
@@ -1072,7 +1048,6 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 
 				SELECT &_ocursorSQL_funcion
 			CASE ALLTRIM(UPPER(_otablaSQL_funcion)) == 	ALLTRIM(UPPER("ABM_articulos"))
-				SET STEP ON 
 				_numarticq = VAL(ALLTRIM(_onombre)) && AQUI TENGO EL _numartic
 				RELEASE _ocursorSQL_1709
 				PUBLIC _ocursorSQL_1709
@@ -1080,27 +1055,6 @@ FUNCTION SQL_oDb_funcion_ID(otabla, onombre, ofiltro)
 				_ocursorSQL_13092016 = 'ABM_articulos_cursor'
 				_otablaSQL_1709 = 'ABM_articulos'
 				_oconectar_250516 = .T.
-				*!*					TRY
-				*!*						IF oDb.Connected()
-				*!*							_oconectar_250516 = .f
-				*!*						ENDIF
-				*!*					CATCH TO oex
-				*!*					ENDTRY
-				*!*					TRY
-				*!*						IF _oconectar_250516 = .t.
-				*!*							IF oDb.Reconnection()
-				*!*								_oconectar_250516 = .f.
-				*!*							ENDIF
-				*!*						ENDIF
-				*!*					CATCH TO oex
-				*!*					ENDTRY
-				*!*					IF _oconectar_250516 = .t.
-				*!*						DO SYS(5) + 'oDbsql/odb_connect'
-				*!*					ENDIF
-				*&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-				*WAIT WINDOW "odb_funcion_id - CONECTED - 4" nowait noclear
-				*&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-				*************************************
 				odb.QUERY("select * from " + _otablaSQL_funcion + " WHERE version = " +  ALLTRIM(STR(_numarticq)) + " AND  id_ABM_empresas = " + ALLTRIM(STR(_sincroaempresa)), _otablaSQL_funcion, _ocursorSQL_funcion)
 
 				*&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
